@@ -1,11 +1,9 @@
 # 设置 CMake 的最低版本要求
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
-#cmake_policy(VERSION 3.10)
-
-set(PROJECT_NAME "UCmake")
 
 # 设定项目
-project (${PROJECT_NAME} VERSION 1.0)
+project (UCmake VERSION 1.0)
+message(STATUS "[Project] ${PROJECT_NAME}")
 
 # 修改默认的安装路径前缀
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -18,7 +16,7 @@ set(CMAKE_DEBUG_POSTFIX d)
 # 确定 C++ 版本
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
- 
+
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive-")
 endif()
@@ -46,6 +44,7 @@ include_directories (
 	# $ENV{XXX_INCLUDE_PATH}
 	# ...
 )
+
 link_directories (
 	${PROJECT_SOURCE_DIR}/lib
 	# $ENV{XXX_LIB_PATH}
