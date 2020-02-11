@@ -36,7 +36,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_SOURCE_DIR}/lib")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # 添加自定义 CMake 模块 UbpaTool.cmake，内含一些工具函数
-list(APPEND CMAKE_MODULE_PATH "${${PROJECT_NAME}_SOURCE_DIR}/cmake")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(UbpaTool)
 
 include_directories (
