@@ -33,7 +33,12 @@ function(Ubpa_GetDirName dirName)
 	set(${dirName} ${TMP} PARENT_SCOPE)
 endfunction()
 
-function(Ubpa_AddSubDirs)
+function(Ubpa_AddSubDirs needAppendFolder)
+	if(${needAppendFolder})
+		Ubpa_GetDirName(dirName)
+		list(APPEND Ubpa_Folders ${dirName})
+	endif()
+	
 	file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
 	set(dirList "")
 	foreach(child ${children})
@@ -41,8 +46,7 @@ function(Ubpa_AddSubDirs)
 			list(APPEND dirList ${child})
 		endif()
 	endforeach()
-	Ubpa_GetDirName(dirName)
-	list(APPEND Ubpa_Folders ${dirName})
+	
 	foreach(dir ${dirList})
 		add_subdirectory(${dir})
 	endforeach()
@@ -132,7 +136,7 @@ function(Ubpa_AddTarget_GDR)
 	endif()
 	
 	# folder
-	set_target_properties(${targetName} PROPERTIES FOLDER ${folderPath})
+	set_target_properties(${targetName} PROPERTIES FOLDER "${PROJECT_NAME}/${folderPath}")
 	
 	foreach(lib ${ARG_LIBS_GENERAL})
 		target_link_libraries(${targetName} general ${lib})
