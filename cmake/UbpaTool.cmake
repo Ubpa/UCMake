@@ -32,8 +32,9 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_GlobGroupSrcs(<rst> <path>)
-# - recursively glob all sources in path and call Ubpa_GroupSrcs(PATH <path> SOURCES <rst>)
+# Ubpa_GlobGroupSrcs(RST <rst> PATHS <paths-list>)
+# - recursively glob all sources in <paths-list>
+#   and call Ubpa_GroupSrcs(PATH <path> SOURCES <rst>) for each path in <paths-list>
 # - regex : .+\.(h|hpp|inl|c|cc|cpp|cxx)
 #
 # ----------------------------------------------------------------------------
@@ -142,19 +143,23 @@ function(Ubpa_GroupSrcs)
 	endforeach()
 endfunction()
 
-function(Ubpa_GlobGroupSrcs rst path)
-	message(STATUS ${path})
-	file(GLOB_RECURSE sources
-		"${path}/*.h"
-		"${path}/*.hpp"
-		"${path}/*.inl"
-		"${path}/*.c"
-		"${path}/*.cc"
-		"${path}/*.cpp"
-		"${path}/*.cxx"
-	)
-	set(${rst} ${sources} PARENT_SCOPE)
-	Ubpa_GroupSrcs(PATH ${path} SOURCES ${sources})
+function(Ubpa_GlobGroupSrcs)
+	cmake_parse_arguments("ARG" "" "RST" "PATHS" ${ARGN})
+	set(sources "")
+	foreach(path ${ARG_PATHS})
+		file(GLOB_RECURSE pathSources
+			"${path}/*.h"
+			"${path}/*.hpp"
+			"${path}/*.inl"
+			"${path}/*.c"
+			"${path}/*.cc"
+			"${path}/*.cpp"
+			"${path}/*.cxx"
+		)
+		list(APPEND sources ${pathSources})
+		Ubpa_GroupSrcs(PATH ${path} SOURCES ${pathSources})
+	endforeach()
+	set(${ARG_RST} ${sources} PARENT_SCOPE)
 endfunction()
 
 function(Ubpa_AddTarget_GDR)
