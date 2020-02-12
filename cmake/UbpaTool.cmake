@@ -1,16 +1,42 @@
 # [ Interface ]
 #
-# Ubpa_GetDirName(<result-name>)
-# - get current directory name
+# ----------------------------------------------------------------------------
 #
-# Ubpa_AddSubDirs()
-# - add all subdirectories
+# Ubpa_List_Print(STRS <string-list> [TITLE <title>] [PREFIX <prefix>])
+# - print:
+#          <title>
+#          <prefix>item0
+#          ...
+#          <prefix>itemN
 #
-# Ubpa_AddCurPathSrcs(<result-name>)
-# - add currunt path sources : *.h, *.hpp, *.inl, *.cpp, *.cxx
+# ----------------------------------------------------------------------------
 #
 # Upba_List_ChangeSeperator(RST <result-name> SEPERATOR <seperator> LIST <list>)
 # - seperator '/' : "a;b;c" -> "a/b/c"
+#
+# ----------------------------------------------------------------------------
+#
+# Ubpa_GetDirName(<result-name>)
+# - get current directory name
+#
+# ----------------------------------------------------------------------------
+#
+# Ubpa_AddSubDirs(<need-append-folder>)
+# - <need-append-folder> : ON / OFF, append target's folder path with curruent folder name
+# - add all subdirectories
+#
+# ----------------------------------------------------------------------------
+#
+# Ubpa_GroupSrcs(PATH <path> SOURCES <sources-list>
+# - create filters (relative to <path>) for sources
+#
+# ----------------------------------------------------------------------------
+#
+# Ubpa_GlobGroupSrcs(<rst> <path>)
+# - recursively glob all sources in path and call Ubpa_GroupSrcs(PATH <path> SOURCES <rst>)
+# - regex : .+\.(h|hpp|inl|c|cc|cpp|cxx)
+#
+# ----------------------------------------------------------------------------
 #
 # Ubpa_AddTarget_GDR(MODE <mode> NAME <name> SOURCES <sources-list>
 #     LIBS_GENERAL <libsG-list> LIBS_DEBUG <libsD-list> LIBS_RELEASE <libsR-list>)
@@ -18,15 +44,50 @@
 # - libsG-list : auto add DEBUG_POSTFIX for debug mode
 # - auto set folder, target prefix and some properties
 #
+# ----------------------------------------------------------------------------
+#
 # Ubpa_AddTarget(MODE <mode> NAME <name> SOURCES <sources-list> LIBS <libs-list>)
 # - call Ubpa_AddTarget(MODE <mode> NAME <name> SOURCES <sources-list>
 #            LIBS_GENERAL <libsG-list> LIBS_DEBUG "" LIBS_RELEASE "")
 #
+# ----------------------------------------------------------------------------
+#
 # QtBegin()
 # - call it before adding Qt target
 #
+# ----------------------------------------------------------------------------
+#
 # QtEnd()
 # - call it after adding Qt target
+#
+# ----------------------------------------------------------------------------
+
+function(Ubpa_List_Print)
+	cmake_parse_arguments("ARG" "" "TITLE;PREFIX" "STRS" ${ARGN})
+	if(NOT ${ARG_TITLE} STREQUAL "")
+		message(STATUS ${ARG_TITLE})
+	endif()
+	foreach(str ${ARG_STRS})
+		message(STATUS "${ARG_PREFIX}${str}")
+	endforeach()
+endfunction()
+
+function(Upba_List_ChangeSeperator)
+    # https://www.cnblogs.com/cynchanpin/p/7354864.html
+	# https://blog.csdn.net/fuyajun01/article/details/9036443
+	cmake_parse_arguments("ARG" "" "RST;SEPERATOR" "LIST" ${ARGN})
+	list(LENGTH ARG_LIST listLen)
+	if($<BOOL:${listLen}>)
+		set(${ARG_RST} "" PARENT_SCOPE)
+	else()
+		set(rst "")
+		list(POP_BACK ARG_LIST back)
+		foreach(item ${ARG_LIST})
+			set(rst "${rst}${item}${ARG_SEPERATOR}")
+		endforeach()
+		set(${ARG_RST} "${rst}${back}" PARENT_SCOPE)
+	endif()
+endfunction()
 
 function(Ubpa_GetDirName dirName)
 	string(REGEX MATCH "([^/]*)$" TMP ${CMAKE_CURRENT_SOURCE_DIR})
@@ -52,33 +113,48 @@ function(Ubpa_AddSubDirs needAppendFolder)
 	endforeach()
 endfunction()
 
-function(Ubpa_AddCurPathSrcs rst)
-	file(GLOB sources
-		"${CMAKE_CURRENT_SOURCE_DIR}/*.h"
-		"${CMAKE_CURRENT_SOURCE_DIR}/*.hpp"
-		"${CMAKE_CURRENT_SOURCE_DIR}/*.inl"
-		"${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-		"${CMAKE_CURRENT_SOURCE_DIR}/*.cxx"
-		"${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
-	)
-	set(${rst} ${sources} PARENT_SCOPE)
+function(Ubpa_GroupSrcs)
+	cmake_parse_arguments("ARG" "" "PATH" "SOURCES" ${ARGN})
+	
+	set(headerFiles ${ARG_SOURCES})
+	set(sourceFiles ${ARG_SOURCES})
+	list(FILTER headerFiles INCLUDE REGEX ".+\.(h|hpp|inl)$")
+	list(FILTER sourceFiles INCLUDE REGEX ".+\.(c|cc|cpp|cxx)$")
+	
+	foreach(header ${headerFiles})
+		get_filename_component(headerPath "${header}" PATH)
+		file(RELATIVE_PATH headerPathRel ${ARG_PATH} "${headerPath}")
+		if(MSVC)
+			string(REPLACE "/" "\\" headerPathRelMSVC "${headerPathRel}")
+			set(headerPathRel "Header Files\\${headerPathRelMSVC}")
+		endif()
+		source_group("${headerPathRel}" FILES "${header}")
+	endforeach()
+	
+	foreach(source ${sourceFiles})
+		get_filename_component(sourcePath "${source}" PATH)
+		file(RELATIVE_PATH sourcePathRel ${ARG_PATH} "${sourcePath}")
+		if(MSVC)
+			string(REPLACE "/" "\\" sourcePathRelMSVC "${sourcePathRel}")
+			set(sourcePathRel "Source Files\\${sourcePathRelMSVC}")
+		endif()
+		source_group("${sourcePathRel}" FILES "${source}")
+	endforeach()
 endfunction()
 
-function(Upba_List_ChangeSeperator)
-    # https://www.cnblogs.com/cynchanpin/p/7354864.html
-	# https://blog.csdn.net/fuyajun01/article/details/9036443
-	cmake_parse_arguments("ARG" "" "RST;SEPERATOR" "LIST" ${ARGN})
-	list(LENGTH ARG_LIST listLen)
-	if($<BOOL:${listLen}>)
-		set(${ARG_RST} "" PARENT_SCOPE)
-	else()
-		set(rst "")
-		list(POP_BACK ARG_LIST back)
-		foreach(item ${ARG_LIST})
-			set(rst "${rst}${item}${ARG_SEPERATOR}")
-		endforeach()
-		set(${ARG_RST} "${rst}${back}" PARENT_SCOPE)
-	endif()
+function(Ubpa_GlobGroupSrcs rst path)
+	message(STATUS ${path})
+	file(GLOB_RECURSE sources
+		"${path}/*.h"
+		"${path}/*.hpp"
+		"${path}/*.inl"
+		"${path}/*.c"
+		"${path}/*.cc"
+		"${path}/*.cpp"
+		"${path}/*.cxx"
+	)
+	set(${rst} ${sources} PARENT_SCOPE)
+	Ubpa_GroupSrcs(PATH ${path} SOURCES ${sources})
 endfunction()
 
 function(Ubpa_AddTarget_GDR)
@@ -100,23 +176,19 @@ function(Ubpa_AddTarget_GDR)
 	message(STATUS "- name: ${targetName}")
 	message(STATUS "- folder : ${folderPath}")
 	message(STATUS "- mode: ${ARG_MODE}")
-	message(STATUS "- sources:")
-	foreach(source ${ARG_SOURCES})
-	    message(STATUS "    ${source}")
-	endforeach()
+	Ubpa_List_Print(STRS ${ARG_SOURCES}
+		TITLE  "- sources:"
+		PREFIX "    ")
 	message(STATUS "- libs:")
-	message(STATUS "  - general:")
-	foreach(lib ${ARG_LIBS_GENERAL})
-	    message(STATUS "      ${lib}")
-	endforeach()
-	message(STATUS "  - debug:")
-	foreach(lib ${ARG_LIBS_DEBUG})
-	    message(STATUS "      ${lib}")
-	endforeach()
-	message(STATUS "  - release:")
-	foreach(lib ${ARG_LIBS_RELEASE})
-	    message(STATUS "      ${lib}")
-	endforeach()
+	Ubpa_List_Print(STRS ${ARG_LIBS_GENERAL}
+		TITLE  "  - general:"
+		PREFIX "      ")
+	Ubpa_List_Print(STRS ${ARG_LIBS_DEBUG}
+		TITLE  "  - debug:"
+		PREFIX "      ")
+	Ubpa_List_Print(STRS ${ARG_LIBS_RELEASE}
+		TITLE  "  - release:"
+		PREFIX "      ")
 	
 	if(sourcesNum EQUAL 0)
 		message(WARNING "Target [${targetName}] has no source")
