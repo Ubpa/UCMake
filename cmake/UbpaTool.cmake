@@ -87,7 +87,13 @@ function(Ubpa_AddTarget_GDR)
 	cmake_parse_arguments("ARG" "" "MODE;NAME" "SOURCES;LIBS_GENERAL;LIBS_DEBUG;LIBS_RELEASE" ${ARGN})
 	Upba_List_ChangeSeperator(RST folderPrefix SEPERATOR "_" LIST ${Ubpa_Folders})
 	Upba_List_ChangeSeperator(RST folderPath SEPERATOR "/" LIST ${Ubpa_Folders})
-	set(targetName "${PROJECT_NAME}_${folderPrefix}_${ARG_NAME}")
+	
+	list(LENGTH Ubpa_Folders folderNum)
+	if(folderNum EQUAL 0)
+		set(targetName "${PROJECT_NAME}_${ARG_NAME}")
+	else()
+		set(targetName "${PROJECT_NAME}_${folderPrefix}_${ARG_NAME}")
+	endif()
 	
 	message(STATUS "----------")
 	
