@@ -168,6 +168,11 @@ function(Ubpa_AddTarget_GDR)
 	cmake_parse_arguments("ARG" "" "MODE;NAME" "SOURCES;LIBS_GENERAL;LIBS_DEBUG;LIBS_RELEASE" ${ARGN})
 	Upba_List_ChangeSeperator(RST folderPrefix SEPERATOR "_" LIST ${Ubpa_Folders})
 	Upba_List_ChangeSeperator(RST folderPath SEPERATOR "/" LIST ${Ubpa_Folders})
+	if("${folderPath}" STREQUAL "")
+		set(folderPath "${PROJECT_NAME}")
+	else()
+		set(folderPath "${PROJECT_NAME}/${folderPath}")
+	endif()
 	
 	if("${ARG_NAME}" STREQUAL "")
 		Ubpa_GetDirName(curDirName)
@@ -183,6 +188,11 @@ function(Ubpa_AddTarget_GDR)
 	list(LENGTH ARG_SOURCES sourceNum)
 	if(${sourceNum} EQUAL 0)
 		Ubpa_GlobGroupSrcs(RST ARG_SOURCES PATHS ${CMAKE_CURRENT_SOURCE_DIR})
+		list(LENGTH ARG_SOURCES sourceNum)
+		if(sourcesNum EQUAL 0)
+			message(WARNING "Target [${targetName}] has no source")
+			return()
+		endif()
 	endif()
 	
 	message(STATUS "----------")
@@ -193,20 +203,27 @@ function(Ubpa_AddTarget_GDR)
 	Ubpa_List_Print(STRS ${ARG_SOURCES}
 		TITLE  "- sources:"
 		PREFIX "    ")
-	message(STATUS "- libs:")
-	Ubpa_List_Print(STRS ${ARG_LIBS_GENERAL}
-		TITLE  "  - general:"
-		PREFIX "      ")
-	Ubpa_List_Print(STRS ${ARG_LIBS_DEBUG}
-		TITLE  "  - debug:"
-		PREFIX "      ")
-	Ubpa_List_Print(STRS ${ARG_LIBS_RELEASE}
-		TITLE  "  - release:"
-		PREFIX "      ")
 	
-	if(sourcesNum EQUAL 0)
-		message(WARNING "Target [${targetName}] has no source")
-		return()
+	list(LENGTH ARG_LIBS_GENERAL generalLibNum)
+	list(LENGTH ARG_LIBS_DEBUG debugLibNum)
+	list(LENGTH ARG_LIBS_RELEASE releaseLibNum)
+	if(${debugLibNum} EQUAL 0 AND ${releaseLibNum} EQUAL 0)
+		if(NOT ${generalLibNum} EQUAL 0)
+		Ubpa_List_Print(STRS ${ARG_LIBS_GENERAL}
+			TITLE  "- lib:"
+			PREFIX "    ")
+		endif()
+	else()
+		message(STATUS "- libs:")
+		Ubpa_List_Print(STRS ${ARG_LIBS_GENERAL}
+			TITLE  "  - general:"
+			PREFIX "      ")
+		Ubpa_List_Print(STRS ${ARG_LIBS_DEBUG}
+			TITLE  "  - debug:"
+			PREFIX "      ")
+		Ubpa_List_Print(STRS ${ARG_LIBS_RELEASE}
+			TITLE  "  - release:"
+			PREFIX "      ")
 	endif()
 	
 	# add target
@@ -228,7 +245,7 @@ function(Ubpa_AddTarget_GDR)
 	endif()
 	
 	# folder
-	set_target_properties(${targetName} PROPERTIES FOLDER "${PROJECT_NAME}/${folderPath}")
+	set_target_properties(${targetName} PROPERTIES FOLDER ${folderPath})
 	
 	foreach(lib ${ARG_LIBS_GENERAL})
 		target_link_libraries(${targetName} general ${lib})
@@ -243,8 +260,6 @@ function(Ubpa_AddTarget_GDR)
 		RUNTIME DESTINATION "bin"
 		ARCHIVE DESTINATION "lib"
 		LIBRARY DESTINATION "lib")
-		
-	message(STATUS "----------")
 endfunction()
 
 function(Ubpa_AddTarget)
