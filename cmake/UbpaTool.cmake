@@ -21,8 +21,7 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_AddSubDirs(<need-append-folder>)
-# - <need-append-folder> : ON / OFF, append target's folder path with curruent folder name
+# Ubpa_AddSubDirs()
 # - add all subdirectories
 #
 # ----------------------------------------------------------------------------
@@ -39,17 +38,22 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_AddTarget_GDR(MODE <mode> NAME <name> SOURCES <sources-list>
-#     LIBS_GENERAL <libsG-list> LIBS_DEBUG <libsD-list> LIBS_RELEASE <libsR-list>)
-# - mode       : EXE / LIB / DLL
-# - libsG-list : auto add DEBUG_POSTFIX for debug mode
-# - auto set folder, target prefix and some properties
+# Ubpa_GetTargetName(<rst> <targetPath>)
+# - get target name at <targetPath>
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_AddTarget(MODE <mode> NAME <name> SOURCES <sources-list> LIBS <libs-list>)
-# - call Ubpa_AddTarget(MODE <mode> NAME <name> SOURCES <sources-list>
-#            LIBS_GENERAL <libsG-list> LIBS_DEBUG "" LIBS_RELEASE "")
+# Ubpa_AddTarget_GDR(MODE <mode> [SOURCES <sources-list>]
+#     [LIBS_GENERAL <libsG-list>] [LIBS_DEBUG <libsD-list>] [LIBS_RELEASE <libsR-list>])
+# - mode         : EXE / LIB / DLL
+# - libsG-list   : auto add DEBUG_POSTFIX for debug mode
+# - sources-list : if sources is empty, call Ubpa_GlobGroupSrcs for currunt path
+# - auto set target name, folder, target prefix and some properties
+#
+# ----------------------------------------------------------------------------
+#
+# Ubpa_AddTarget(MODE <mode> [SOURCES <sources-list>] [LIBS <libs-list>])
+# - call Ubpa_AddTarget(MODE <mode> SOURCES <sources-list> LIBS_GENERAL <libs-list>)
 #
 # ----------------------------------------------------------------------------
 #
@@ -95,12 +99,7 @@ function(Ubpa_GetDirName dirName)
 	set(${dirName} ${TMP} PARENT_SCOPE)
 endfunction()
 
-function(Ubpa_AddSubDirs needAppendFolder)
-	if(${needAppendFolder})
-		Ubpa_GetDirName(dirName)
-		list(APPEND Ubpa_Folders ${dirName})
-	endif()
-	
+function(Ubpa_AddSubDirs)
 	file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
 	set(dirList "")
 	foreach(child ${children})
@@ -108,7 +107,6 @@ function(Ubpa_AddSubDirs needAppendFolder)
 			list(APPEND dirList ${child})
 		endif()
 	endforeach()
-	
 	foreach(dir ${dirList})
 		add_subdirectory(${dir})
 	endforeach()
@@ -162,28 +160,19 @@ function(Ubpa_GlobGroupSrcs)
 	set(${ARG_RST} ${sources} PARENT_SCOPE)
 endfunction()
 
+function(Ubpa_GetTargetName rst targetPath)
+	file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${targetPath}")
+	string(REPLACE "/" "_" targetName "${PROJECT_NAME}/${targetRelPath}")
+	set(${rst} ${targetName} PARENT_SCOPE) 
+endfunction()
+
 function(Ubpa_AddTarget_GDR)
     # https://www.cnblogs.com/cynchanpin/p/7354864.html
 	# https://blog.csdn.net/fuyajun01/article/details/9036443
-	cmake_parse_arguments("ARG" "" "MODE;NAME" "SOURCES;LIBS_GENERAL;LIBS_DEBUG;LIBS_RELEASE" ${ARGN})
-	Upba_List_ChangeSeperator(RST folderPrefix SEPERATOR "_" LIST ${Ubpa_Folders})
-	Upba_List_ChangeSeperator(RST folderPath SEPERATOR "/" LIST ${Ubpa_Folders})
-	if("${folderPath}" STREQUAL "")
-		set(folderPath "${PROJECT_NAME}")
-	else()
-		set(folderPath "${PROJECT_NAME}/${folderPath}")
-	endif()
-	
-	if("${ARG_NAME}" STREQUAL "")
-		Ubpa_GetDirName(curDirName)
-		set(ARG_NAME ${curDirName})
-	endif()
-	list(LENGTH Ubpa_Folders folderNum)
-	if(folderNum EQUAL 0)
-		set(targetName "${PROJECT_NAME}_${ARG_NAME}")
-	else()
-		set(targetName "${PROJECT_NAME}_${folderPrefix}_${ARG_NAME}")
-	endif()
+	cmake_parse_arguments("ARG" "" "MODE" "SOURCES;LIBS_GENERAL;LIBS_DEBUG;LIBS_RELEASE" ${ARGN})
+	file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/..")
+	set(folderPath "${PROJECT_NAME}/${targetRelPath}")
+	Ubpa_GetTargetName(targetName ${CMAKE_CURRENT_SOURCE_DIR})
 	
 	list(LENGTH ARG_SOURCES sourceNum)
 	if(${sourceNum} EQUAL 0)
@@ -265,8 +254,8 @@ endfunction()
 function(Ubpa_AddTarget)
     # https://www.cnblogs.com/cynchanpin/p/7354864.html
 	# https://blog.csdn.net/fuyajun01/article/details/9036443
-	cmake_parse_arguments("ARG" "" "MODE;NAME" "SOURCES;LIBS" ${ARGN})
-	Ubpa_AddTarget_GDR(MODE ${ARG_MODE} NAME ${ARG_NAME} SOURCES ${ARG_SOURCES} LIBS_GENERAL ${ARG_LIBS} LIBS_DEBUG "" LIBS_RELEASE "")
+	cmake_parse_arguments("ARG" "" "MODE" "SOURCES;LIBS" ${ARGN})
+	Ubpa_AddTarget_GDR(MODE ${ARG_MODE} SOURCES ${ARG_SOURCES} LIBS_GENERAL ${ARG_LIBS})
 endfunction()
 
 function(Ubpa_QtBegin)
