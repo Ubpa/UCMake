@@ -43,7 +43,17 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_AddTarget_GDR(MODE <mode> [SOURCES <sources-list>]
+# QtBegin()
+# - call it before adding Qt target
+#
+# ----------------------------------------------------------------------------
+#
+# QtEnd()
+# - call it after adding Qt target
+#
+# ----------------------------------------------------------------------------
+#
+# Ubpa_AddTarget_GDR(MODE <mode> [QT <qt>] [SOURCES <sources-list>]
 #     [LIBS_GENERAL <libsG-list>] [LIBS_DEBUG <libsD-list>] [LIBS_RELEASE <libsR-list>])
 # - mode         : EXE / LIB / DLL
 # - libsG-list   : auto add DEBUG_POSTFIX for debug mode
@@ -52,18 +62,8 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_AddTarget(MODE <mode> [SOURCES <sources-list>] [LIBS <libs-list>])
+# Ubpa_AddTarget(MODE <mode> [QT <qt>] [SOURCES <sources-list>] [LIBS <libs-list>])
 # - call Ubpa_AddTarget(MODE <mode> SOURCES <sources-list> LIBS_GENERAL <libs-list>)
-#
-# ----------------------------------------------------------------------------
-#
-# QtBegin()
-# - call it before adding Qt target
-#
-# ----------------------------------------------------------------------------
-#
-# QtEnd()
-# - call it after adding Qt target
 #
 # ----------------------------------------------------------------------------
 
@@ -116,9 +116,13 @@ function(Ubpa_GroupSrcs)
 	cmake_parse_arguments("ARG" "" "PATH" "SOURCES" ${ARGN})
 	
 	set(headerFiles ${ARG_SOURCES})
+	list(FILTER headerFiles INCLUDE REGEX ".+\.(h|hpp|inl|in)$")
+	
 	set(sourceFiles ${ARG_SOURCES})
-	list(FILTER headerFiles INCLUDE REGEX ".+\.(h|hpp|inl)$")
 	list(FILTER sourceFiles INCLUDE REGEX ".+\.(c|cc|cpp|cxx)$")
+	
+	set(qtFiles ${ARG_SOURCES})
+	list(FILTER qtFiles INCLUDE REGEX ".+\.(qrc|ui)$")
 	
 	foreach(header ${headerFiles})
 		get_filename_component(headerPath "${header}" PATH)
@@ -139,6 +143,16 @@ function(Ubpa_GroupSrcs)
 		endif()
 		source_group("${sourcePathRel}" FILES "${source}")
 	endforeach()
+	
+	foreach(qtFile ${qtFiles})
+		get_filename_component(qtFilePath "${qtFile}" PATH)
+		file(RELATIVE_PATH qtFilePathRel ${ARG_PATH} "${qtFilePath}")
+		if(MSVC)
+			string(REPLACE "/" "\\" qtFilePathRelMSVC "${qtFilePathRel}")
+			set(qtFilePathRel "Qt Files\\${qtFilePathRelMSVC}")
+		endif()
+		source_group("${qtFilePathRel}" FILES "${qtFile}")
+	endforeach()
 endfunction()
 
 function(Ubpa_GlobGroupSrcs)
@@ -154,6 +168,8 @@ function(Ubpa_GlobGroupSrcs)
 			"${path}/*.cc"
 			"${path}/*.cpp"
 			"${path}/*.cxx"
+			"${path}/*.qrc"
+			"${path}/*.ui"
 		)
 		list(APPEND sources ${pathSources})
 		Ubpa_GroupSrcs(PATH ${path} SOURCES ${pathSources})
@@ -167,10 +183,23 @@ function(Ubpa_GetTargetName rst targetPath)
 	set(${rst} ${targetName} PARENT_SCOPE) 
 endfunction()
 
+
+function(Ubpa_QtBegin)
+	set(CMAKE_AUTOMOC ON PARENT_SCOPE)
+	set(CMAKE_AUTOUIC ON PARENT_SCOPE)
+	set(CMAKE_AUTORCC ON PARENT_SCOPE)
+endfunction()
+
+function(Ubpa_QtEnd)
+	set(CMAKE_AUTOMOC OFF PARENT_SCOPE)
+	set(CMAKE_AUTOUIC OFF PARENT_SCOPE)
+	set(CMAKE_AUTORCC OFF PARENT_SCOPE)
+endfunction()
+
 function(Ubpa_AddTarget_GDR)
     # https://www.cnblogs.com/cynchanpin/p/7354864.html
 	# https://blog.csdn.net/fuyajun01/article/details/9036443
-	cmake_parse_arguments("ARG" "" "MODE" "SOURCES;LIBS_GENERAL;LIBS_DEBUG;LIBS_RELEASE" ${ARGN})
+	cmake_parse_arguments("ARG" "" "MODE;QT" "SOURCES;LIBS_GENERAL;LIBS_DEBUG;LIBS_RELEASE" ${ARGN})
 	file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/..")
 	set(folderPath "${PROJECT_NAME}/${targetRelPath}")
 	Ubpa_GetTargetName(targetName ${CMAKE_CURRENT_SOURCE_DIR})
@@ -186,7 +215,6 @@ function(Ubpa_AddTarget_GDR)
 	endif()
 	
 	message(STATUS "----------")
-	
 	message(STATUS "- name: ${targetName}")
 	message(STATUS "- folder : ${folderPath}")
 	message(STATUS "- mode: ${ARG_MODE}")
@@ -217,6 +245,11 @@ function(Ubpa_AddTarget_GDR)
 	endif()
 	
 	# add target
+	
+	if(${ARG_QT})
+		Ubpa_QtBegin()
+	endif()
+	
 	if(${ARG_MODE} STREQUAL "EXE")
 		add_executable(${targetName} ${ARG_SOURCES})
 		if(MSVC)
@@ -250,23 +283,15 @@ function(Ubpa_AddTarget_GDR)
 		RUNTIME DESTINATION "bin"
 		ARCHIVE DESTINATION "lib"
 		LIBRARY DESTINATION "lib")
+	
+	if(${ARG_QT})
+		Ubpa_QtEnd()
+	endif()
 endfunction()
 
 function(Ubpa_AddTarget)
     # https://www.cnblogs.com/cynchanpin/p/7354864.html
 	# https://blog.csdn.net/fuyajun01/article/details/9036443
-	cmake_parse_arguments("ARG" "" "MODE" "SOURCES;LIBS" ${ARGN})
-	Ubpa_AddTarget_GDR(MODE ${ARG_MODE} SOURCES ${ARG_SOURCES} LIBS_GENERAL ${ARG_LIBS})
-endfunction()
-
-function(Ubpa_QtBegin)
-	set(CMAKE_AUTOMOC ON PARENT_SCOPE)
-	set(CMAKE_AUTOUIC ON PARENT_SCOPE)
-	set(CMAKE_AUTORCC ON PARENT_SCOPE)
-endfunction()
-
-function(Ubpa_QtEnd)
-	set(CMAKE_AUTOMOC OFF PARENT_SCOPE)
-	set(CMAKE_AUTOUIC OFF PARENT_SCOPE)
-	set(CMAKE_AUTORCC OFF PARENT_SCOPE)
+	cmake_parse_arguments("ARG" "" "MODE;QT" "SOURCES;LIBS" ${ARGN})
+	Ubpa_AddTarget_GDR(MODE ${ARG_MODE} QT ${ARG_QT} SOURCES ${ARG_SOURCES} LIBS_GENERAL ${ARG_LIBS})
 endfunction()
