@@ -269,7 +269,7 @@ __pycache__/
 *.pdf
 *.zip
 
-config/config.out
+Ubpa_config*.h
 
 lib/
 bin/

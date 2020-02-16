@@ -34,7 +34,7 @@
 # Ubpa_GlobGroupSrcs(RST <rst> PATHS <paths-list>)
 # - recursively glob all sources in <paths-list>
 #   and call Ubpa_GroupSrcs(PATH <path> SOURCES <rst>) for each path in <paths-list>
-# - regex : .+\.(h|hpp|inl|c|cc|cpp|cxx)
+# - regex : .+\.(h|hpp|inl|in|c|cc|cpp|cxx)
 #
 # ----------------------------------------------------------------------------
 #
@@ -149,6 +149,7 @@ function(Ubpa_GlobGroupSrcs)
 			"${path}/*.h"
 			"${path}/*.hpp"
 			"${path}/*.inl"
+			"${path}/*.in"
 			"${path}/*.c"
 			"${path}/*.cc"
 			"${path}/*.cpp"
