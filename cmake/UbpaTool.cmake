@@ -2,25 +2,6 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_List_Print(STRS <string-list> [TITLE <title>] [PREFIX <prefix>])
-# - print:
-#          <title>
-#          <prefix>item0
-#          ...
-#          <prefix>itemN
-#
-# ----------------------------------------------------------------------------
-#
-# Upba_List_ChangeSeperator(RST <result-name> SEPERATOR <seperator> LIST <list>)
-# - seperator '/' : "a;b;c" -> "a/b/c"
-#
-# ----------------------------------------------------------------------------
-#
-# Ubpa_GetDirName(<result-name>)
-# - get current directory name
-#
-# ----------------------------------------------------------------------------
-#
 # Ubpa_AddSubDirs()
 # - add all subdirectories
 #
@@ -43,16 +24,6 @@
 #
 # ----------------------------------------------------------------------------
 #
-# QtBegin()
-# - call it before adding Qt target
-#
-# ----------------------------------------------------------------------------
-#
-# QtEnd()
-# - call it after adding Qt target
-#
-# ----------------------------------------------------------------------------
-#
 # Ubpa_AddTarget_GDR(MODE <mode> [QT <qt>] [SOURCES <sources-list>]
 #     [LIBS_GENERAL <libsG-list>] [LIBS_DEBUG <libsD-list>] [LIBS_RELEASE <libsR-list>])
 # - mode         : EXE / LIB / DLL
@@ -67,37 +38,9 @@
 #
 # ----------------------------------------------------------------------------
 
-function(Ubpa_List_Print)
-	cmake_parse_arguments("ARG" "" "TITLE;PREFIX" "STRS" ${ARGN})
-	if(NOT ${ARG_TITLE} STREQUAL "")
-		message(STATUS ${ARG_TITLE})
-	endif()
-	foreach(str ${ARG_STRS})
-		message(STATUS "${ARG_PREFIX}${str}")
-	endforeach()
-endfunction()
+message(STATUS "include UbpaTool.cmake")
 
-function(Upba_List_ChangeSeperator)
-    # https://www.cnblogs.com/cynchanpin/p/7354864.html
-	# https://blog.csdn.net/fuyajun01/article/details/9036443
-	cmake_parse_arguments("ARG" "" "RST;SEPERATOR" "LIST" ${ARGN})
-	list(LENGTH ARG_LIST listLen)
-	if($<BOOL:${listLen}>)
-		set(${ARG_RST} "" PARENT_SCOPE)
-	else()
-		set(rst "")
-		list(POP_BACK ARG_LIST back)
-		foreach(item ${ARG_LIST})
-			set(rst "${rst}${item}${ARG_SEPERATOR}")
-		endforeach()
-		set(${ARG_RST} "${rst}${back}" PARENT_SCOPE)
-	endif()
-endfunction()
-
-function(Ubpa_GetDirName dirName)
-	string(REGEX MATCH "([^/]*)$" TMP ${CMAKE_CURRENT_SOURCE_DIR})
-	set(${dirName} ${TMP} PARENT_SCOPE)
-endfunction()
+include(UbpaQt)
 
 function(Ubpa_AddSubDirs)
 	file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
@@ -181,19 +124,6 @@ function(Ubpa_GetTargetName rst targetPath)
 	file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${targetPath}")
 	string(REPLACE "/" "_" targetName "${PROJECT_NAME}/${targetRelPath}")
 	set(${rst} ${targetName} PARENT_SCOPE) 
-endfunction()
-
-
-function(Ubpa_QtBegin)
-	set(CMAKE_AUTOMOC ON PARENT_SCOPE)
-	set(CMAKE_AUTOUIC ON PARENT_SCOPE)
-	set(CMAKE_AUTORCC ON PARENT_SCOPE)
-endfunction()
-
-function(Ubpa_QtEnd)
-	set(CMAKE_AUTOMOC OFF PARENT_SCOPE)
-	set(CMAKE_AUTOUIC OFF PARENT_SCOPE)
-	set(CMAKE_AUTORCC OFF PARENT_SCOPE)
 endfunction()
 
 function(Ubpa_AddTarget_GDR)
