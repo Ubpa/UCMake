@@ -2,8 +2,8 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_AddSubDirs()
-# - add all subdirectories
+# Ubpa_AddSubDirsRec(<path>)
+# - add all subdirectories recursively in <path>
 #
 # ----------------------------------------------------------------------------
 #
@@ -42,15 +42,17 @@ message(STATUS "include UbpaTool.cmake")
 
 include(UbpaQt)
 
-function(Ubpa_AddSubDirs)
-	file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
-	set(dirList "")
-	foreach(child ${children})
-		if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
-			list(APPEND dirList ${child})
+function(Ubpa_AddSubDirsRec path)
+	message(STATUS "----------")
+	file(GLOB_RECURSE children LIST_DIRECTORIES true ${CMAKE_CURRENT_SOURCE_DIR}/${path}/*)
+	set(dirs "")
+	foreach(item ${children})
+		if(IS_DIRECTORY ${item} AND EXISTS "${item}/CMakeLists.txt")
+			list(APPEND dirs ${item})
 		endif()
 	endforeach()
-	foreach(dir ${dirList})
+	Ubpa_List_Print(TITLE "directories:" PREFIX "- " STRS ${dirs})
+	foreach(dir ${dirs})
 		add_subdirectory(${dir})
 	endforeach()
 endfunction()

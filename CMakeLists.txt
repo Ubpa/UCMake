@@ -57,7 +57,7 @@ link_directories (
 	# ...
 )
 
-add_subdirectory (src)
+Ubpa_AddSubDirsRec(src)
 
 include (InstallRequiredSystemLibraries)
 set (CPACK_PACKAGE_VERSION_MAJOR "${${PROJECT_NAME}_VERSION_MAJOR}")
