@@ -38,8 +38,8 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # 添加自定义 CMake 模块 UbpaTool.cmake，内含一些工具函数
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(UbpaTool)
-set(TEST_QT OFF CACHE BOOL OFF)
 
+set(TEST_QT OFF CACHE BOOL OFF)
 if(TEST_QT)
 	set(QtCmpts "Core;Gui;Widgets")
 	Ubpa_QtInit(COMPONENTS ${QtCmpts})
