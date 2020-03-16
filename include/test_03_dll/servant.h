@@ -1,4 +1,4 @@
-#include "Ubpa_config_servant_dll.h"
+#include "Ubpa_config_dll_servant.h"
 
 class DLL_SPEC Servant {
 public:

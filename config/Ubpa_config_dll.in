@@ -1,0 +1,14 @@
+#pragma once
+
+// Any changes to this file will be overwritten by the next CMake run
+// The input file was Ubpa_dll.in
+
+#if defined(_WIN32) && !defined(UBPA_STATIC)
+#  ifdef @config_targetName@_EXPORTS
+#    define DLL_SPEC __declspec(dllexport)
+#  else
+#    define DLL_SPEC __declspec(dllimport)
+#  endif
+#else // non windows or use static
+#  define DLL_SPEC
+#endif
