@@ -39,6 +39,11 @@
 # - call Ubpa_AddTarget(MODE <mode> QT <qt> TEST <test> SOURCES <sources-list> LIBS_GENERAL <libs-list>)
 #
 # ----------------------------------------------------------------------------
+#
+# Ubpa_Export()
+# - export
+#
+# ----------------------------------------------------------------------------
 
 message(STATUS "include UbpaBuild.cmake")
 
@@ -126,7 +131,7 @@ endfunction()
 
 function(Ubpa_GetTargetName rst targetPath)
 	file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${targetPath}")
-	string(REPLACE "/" "_" targetName "${PROJECT_NAME}/${targetRelPath}")
+	string(REPLACE "/" "_" targetName "${targetRelPath}")
 	set(${rst} ${targetName} PARENT_SCOPE) 
 endfunction()
 
@@ -193,15 +198,19 @@ function(Ubpa_AddTarget_GDR)
 		set(targets ${targetName})
 	elseif(${ARG_MODE} STREQUAL "LIB")
 		add_library(${targetName} ${ARG_SOURCES})
+		add_library("${PROJECT_NAME}::${targetName}" ALIAS ${targetName})
 		# 无需手动设置
 		#set_target_properties(${targetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 		set(targets ${targetName})
 	elseif(${ARG_MODE} STREQUAL "DLL")
 		add_library(${targetName} SHARED ${ARG_SOURCES})
+		add_library("${PROJECT_NAME}::${targetName}" ALIAS ${targetName})
 		set(targets ${targetName})
 	elseif(${ARG_MODE} STREQUAL "DS")
 		add_library("${targetName}_shared" SHARED ${ARG_SOURCES})
+		add_library("${PROJECT_NAME}::${targetName}_shared" ALIAS "${targetName}_shared")
 		add_library("${targetName}_static" STATIC ${ARG_SOURCES})
+		add_library("${PROJECT_NAME}::${targetName}_static" ALIAS "${targetName}_static")
 		target_compile_definitions("${targetName}_static" PUBLIC -DUBPA_STATIC)
 		set(targets "${targetName}_shared;${targetName}_static")
 	else()
@@ -225,6 +234,7 @@ function(Ubpa_AddTarget_GDR)
 		if(NOT "${ARG_TEST}" STREQUAL "ON")
 			message(STATUS "INSTALL")
 			install(TARGETS ${target}
+				EXPORT "${PROJECT_NAME}Targets"
 				RUNTIME DESTINATION "bin"
 				ARCHIVE DESTINATION "lib"
 				LIBRARY DESTINATION "lib")
@@ -242,3 +252,45 @@ function(Ubpa_AddTarget)
 	cmake_parse_arguments("ARG" "" "MODE;QT;TEST" "SOURCES;LIBS" ${ARGN})
 	Ubpa_AddTarget_GDR(MODE ${ARG_MODE} QT ${ARG_QT} TEST ${ARG_TEST} SOURCES ${ARG_SOURCES} LIBS_GENERAL ${ARG_LIBS})
 endfunction()
+
+macro(Ubpa_Export)
+	# install the configuration targets
+	install(EXPORT "${PROJECT_NAME}Targets"
+		FILE "${PROJECT_NAME}Targets.cmake"
+		DESTINATION "lib/${PROJECT_NAME}/cmake"
+	)
+	
+	include(CMakePackageConfigHelpers)
+	
+	# generate the config file that is includes the exports
+	configure_package_config_file(${PROJECT_SOURCE_DIR}/config/Config.cmake.in
+		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+		INSTALL_DESTINATION "lib/${PROJECT_NAME}/cmake"
+		NO_SET_AND_CHECK_MACRO
+		NO_CHECK_REQUIRED_COMPONENTS_MACRO
+	)
+	
+	# generate the version file for the config file
+	write_basic_package_version_file(
+		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+		VERSION "${Tutorial_VERSION_MAJOR}.${Tutorial_VERSION_MINOR}"
+		COMPATIBILITY AnyNewerVersion
+	)
+
+	# install the configuration file
+	install(FILES
+		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+		DESTINATION "lib/${PROJECT_NAME}/cmake"
+	)
+
+	# generate the export targets for the build tree
+	# needs to be after the install(TARGETS ) command
+	export(EXPORT "${PROJECT_NAME}Targets"
+		FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+	)
+
+	install(FILES
+		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+		DESTINATION "lib/${PROJECT_NAME}/cmake"
+	)
+endmacro()
