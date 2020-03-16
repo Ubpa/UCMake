@@ -3,4 +3,4 @@ Ubpa_GlobGroupSrcs(RST sources PATHS
 	"${PROJECT_SOURCE_DIR}/include/test_01_GroupSrcs"
 )
 
-Ubpa_AddTarget(MODE "EXE" SOURCES ${sources})
+Ubpa_AddTarget(MODE "EXE" SOURCES ${sources} TEST ON)

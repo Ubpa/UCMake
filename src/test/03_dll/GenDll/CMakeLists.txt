@@ -7,4 +7,4 @@ Ubpa_GlobGroupSrcs(RST sources PATHS
 	"${PROJECT_SOURCE_DIR}/include/test_03_dll"
 )
 
-Ubpa_AddTarget(MODE "DLL" SOURCES ${sources})
+Ubpa_AddTarget(MODE "DLL" SOURCES ${sources} TEST ON)
