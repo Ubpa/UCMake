@@ -286,6 +286,7 @@ macro(Ubpa_Export)
 	# generate the export targets for the build tree
 	# needs to be after the install(TARGETS ) command
 	export(EXPORT "${PROJECT_NAME}Targets"
+		NAMESPACE "${PROJECT_NAME}::"
 		FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
 	)
 
@@ -293,4 +294,6 @@ macro(Ubpa_Export)
 		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
 		DESTINATION "lib/${PROJECT_NAME}/cmake"
 	)
+	
+	install(DIRECTORY "include" DESTINATION ${CMAKE_INSTALL_PREFIX})
 endmacro()
