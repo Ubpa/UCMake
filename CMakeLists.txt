@@ -5,11 +5,6 @@ cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 project (UCmake VERSION 1.0)
 message(STATUS "[Project] ${PROJECT_NAME}")
 
-# 修改默认的安装路径前缀
-if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-  set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR} CACHE PATH "install prefix" FORCE)
-endif()
-
 # 在 Debug 模式下自动对 dll 和 lib 文件名后边加 d，但 exe 仍然需要手动设置
 set(CMAKE_DEBUG_POSTFIX d)
 
@@ -39,6 +34,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 include(UbpaTool)
 
+# 修改默认的安装路径前缀
+Ubpa_InitInstallPrefix()
+
 set(TEST_QT OFF CACHE BOOL OFF)
 if(TEST_QT)
 	set(QtCmpts "Core;Gui;Widgets")
@@ -59,7 +57,10 @@ link_directories (
 
 Ubpa_AddSubDirsRec(src)
 
-include (InstallRequiredSystemLibraries)
-set (CPACK_PACKAGE_VERSION_MAJOR "${${PROJECT_NAME}_VERSION_MAJOR}")
-set (CPACK_PACKAGE_VERSION_MINOR "${${PROJECT_NAME}_VERSION_MINOR}")
-include (CPack)
+#include (InstallRequiredSystemLibraries)
+#set (CPACK_PACKAGE_VERSION_MAJOR "${${PROJECT_NAME}_VERSION_MAJOR}")
+#set (CPACK_PACKAGE_VERSION_MINOR "${${PROJECT_NAME}_VERSION_MINOR}")
+#include (CPack)
+
+install(DIRECTORY "cmake" DESTINATION "lib/${PROJECT_NAME}")
+Ubpa_Export(INC OFF)

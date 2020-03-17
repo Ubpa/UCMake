@@ -40,14 +40,26 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_Export()
-# - export
+# Ubpa_Export([INC <inc>])
+# - export some files
+# - inc: default ON, install include/
+#
+# ----------------------------------------------------------------------------
+#
+# Ubpa_InitInstallPrefix()
 #
 # ----------------------------------------------------------------------------
 
 message(STATUS "include UbpaBuild.cmake")
 
 include(UbpaQt)
+
+macro(Ubpa_InitInstallPrefix)
+	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+	  Ubpa_Path_Back(root ${CMAKE_INSTALL_PREFIX} 1)
+	  set(CMAKE_INSTALL_PREFIX "${root}/Ubpa" CACHE PATH "install prefix" FORCE)
+	endif()
+endmacro()
 
 function(Ubpa_AddSubDirsRec path)
 	message(STATUS "----------")
@@ -230,9 +242,7 @@ function(Ubpa_AddTarget_GDR)
 		foreach(lib ${ARG_LIBS_RELEASE})
 			target_link_libraries(${target} optimized ${lib})
 		endforeach()
-		message(STATUS "ARG_TEST: ${ARG_TEST}")
 		if(NOT "${ARG_TEST}" STREQUAL "ON")
-			message(STATUS "INSTALL")
 			install(TARGETS ${target}
 				EXPORT "${PROJECT_NAME}Targets"
 				RUNTIME DESTINATION "bin"
@@ -254,6 +264,8 @@ function(Ubpa_AddTarget)
 endfunction()
 
 macro(Ubpa_Export)
+	cmake_parse_arguments("ARG" "" "INC" "" ${ARGN})
+	
 	# install the configuration targets
 	install(EXPORT "${PROJECT_NAME}Targets"
 		FILE "${PROJECT_NAME}Targets.cmake"
@@ -295,5 +307,7 @@ macro(Ubpa_Export)
 		DESTINATION "lib/${PROJECT_NAME}/cmake"
 	)
 	
-	install(DIRECTORY "include" DESTINATION ${CMAKE_INSTALL_PREFIX})
+	if(NOT "${ARG_INC}" STREQUAL "OFF")
+		install(DIRECTORY "include" DESTINATION ${CMAKE_INSTALL_PREFIX})
+	endif()
 endmacro()
