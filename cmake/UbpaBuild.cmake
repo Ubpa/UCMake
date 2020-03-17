@@ -40,12 +40,6 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_Export([INC <inc>])
-# - export some files
-# - inc: default ON, install include/
-#
-# ----------------------------------------------------------------------------
-#
 # Ubpa_InitInstallPrefix()
 #
 # ----------------------------------------------------------------------------
@@ -262,52 +256,3 @@ function(Ubpa_AddTarget)
 	cmake_parse_arguments("ARG" "" "MODE;QT;TEST" "SOURCES;LIBS" ${ARGN})
 	Ubpa_AddTarget_GDR(MODE ${ARG_MODE} QT ${ARG_QT} TEST ${ARG_TEST} SOURCES ${ARG_SOURCES} LIBS_GENERAL ${ARG_LIBS})
 endfunction()
-
-macro(Ubpa_Export)
-	cmake_parse_arguments("ARG" "" "INC" "" ${ARGN})
-	
-	# install the configuration targets
-	install(EXPORT "${PROJECT_NAME}Targets"
-		FILE "${PROJECT_NAME}Targets.cmake"
-		DESTINATION "lib/${PROJECT_NAME}/cmake"
-	)
-	
-	include(CMakePackageConfigHelpers)
-	
-	# generate the config file that is includes the exports
-	configure_package_config_file(${PROJECT_SOURCE_DIR}/config/Config.cmake.in
-		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-		INSTALL_DESTINATION "lib/${PROJECT_NAME}/cmake"
-		NO_SET_AND_CHECK_MACRO
-		NO_CHECK_REQUIRED_COMPONENTS_MACRO
-	)
-	
-	# generate the version file for the config file
-	write_basic_package_version_file(
-		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-		VERSION "${Tutorial_VERSION_MAJOR}.${Tutorial_VERSION_MINOR}"
-		COMPATIBILITY AnyNewerVersion
-	)
-
-	# install the configuration file
-	install(FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-		DESTINATION "lib/${PROJECT_NAME}/cmake"
-	)
-
-	# generate the export targets for the build tree
-	# needs to be after the install(TARGETS ) command
-	export(EXPORT "${PROJECT_NAME}Targets"
-		NAMESPACE "${PROJECT_NAME}::"
-		FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
-	)
-
-	install(FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
-		DESTINATION "lib/${PROJECT_NAME}/cmake"
-	)
-	
-	if(NOT "${ARG_INC}" STREQUAL "OFF")
-		install(DIRECTORY "include" DESTINATION ${CMAKE_INSTALL_PREFIX})
-	endif()
-endmacro()

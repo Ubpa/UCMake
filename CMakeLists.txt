@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # 设定项目
-project (UCmake VERSION 1.0)
+project (UCmake VERSION 0.1)
 message(STATUS "[Project] ${PROJECT_NAME}")
 
 # 在 Debug 模式下自动对 dll 和 lib 文件名后边加 d，但 exe 仍然需要手动设置
@@ -45,23 +45,14 @@ endif()
 
 include_directories (
 	${PROJECT_SOURCE_DIR}/include
-	# $ENV{XXX_INCLUDE_PATH}
-	# ...
 )
 
 link_directories (
 	${PROJECT_SOURCE_DIR}/lib
-	# $ENV{XXX_LIB_PATH}
-	# ...
 )
 
 Ubpa_AddSubDirsRec(src)
 
-#include (InstallRequiredSystemLibraries)
-#set (CPACK_PACKAGE_VERSION_MAJOR "${${PROJECT_NAME}_VERSION_MAJOR}")
-#set (CPACK_PACKAGE_VERSION_MINOR "${${PROJECT_NAME}_VERSION_MINOR}")
-#include (CPack)
-
-install(DIRECTORY "cmake" DESTINATION "lib/${PROJECT_NAME}")
+install(DIRECTORY "cmake" DESTINATION "lib/${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 install(FILES "LICENSE" DESTINATION "bin")
 Ubpa_Export(INC OFF)
