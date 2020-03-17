@@ -54,5 +54,4 @@ link_directories (
 Ubpa_AddSubDirsRec(src)
 
 install(DIRECTORY "cmake" DESTINATION "lib/${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
-install(FILES "LICENSE" DESTINATION "bin")
 Ubpa_Export(INC OFF)
