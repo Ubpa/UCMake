@@ -15,16 +15,16 @@ message(STATUS "include UbpaPackage.cmake")
 macro(Ubpa_AddDep name version)
 	find_package(${name} ${version} EXACT QUIET)
 	if(${UCMake_FOUND})
-		message(STATUS "${dep}-${version} found")
+		message(STATUS "${name}-${version} found")
 	else()
-		message(STATUS "${dep}-${version} not found, so fetch it ...")
+		message(STATUS "${name}-${version} not found, so fetch it ...")
 		FetchContent_Declare(
 		  ${name}
-		  GIT_REPOSITORY "https://github.com/Ubpa/${dep}"
+		  GIT_REPOSITORY "https://github.com/Ubpa/${name}"
 		  GIT_TAG "v${version}"
 		)
 		FetchContent_MakeAvailable(${name})
-		message(STATUS "${dep}-${version} fetch done")
+		message(STATUS "${name}-${version} fetch done")
 	endif()
 endmacro()
 
