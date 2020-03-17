@@ -12,7 +12,7 @@
 
 message(STATUS "include UbpaQt.cmake")
 
-include(UbpaBasic)
+include("${CMAKE_CURRENT_LIST_DIR}/UbpaBasic.cmake")
 
 # must use macro
 macro(Ubpa_QtInit)

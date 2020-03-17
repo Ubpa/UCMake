@@ -63,4 +63,5 @@ Ubpa_AddSubDirsRec(src)
 #include (CPack)
 
 install(DIRECTORY "cmake" DESTINATION "lib/${PROJECT_NAME}")
+install(FILES "LICENSE" DESTINATION "bin")
 Ubpa_Export(INC OFF)

@@ -52,7 +52,7 @@
 
 message(STATUS "include UbpaBuild.cmake")
 
-include(UbpaQt)
+include("${CMAKE_CURRENT_LIST_DIR}/UbpaQt.cmake")
 
 macro(Ubpa_InitInstallPrefix)
 	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
