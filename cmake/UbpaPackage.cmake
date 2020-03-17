@@ -29,22 +29,33 @@ macro(Ubpa_AddDep name version)
 endmacro()
 
 macro(Ubpa_Export)
-	cmake_parse_arguments("ARG" "" "INC" "" ${ARGN})
+	cmake_parse_arguments("ARG" "" "INC;TARGET" "" ${ARGN})
 	
 	set(package_name "${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
 	message(STATUS "export ${package_name}")
-	# install the configuration targets
-	install(EXPORT "${PROJECT_NAME}Targets"
-		FILE "${PROJECT_NAME}Targets.cmake"
-		DESTINATION "lib/${package_name}/cmake"
-	)
+	
+	if(NOT "${ARG_TARGET}" STREQUAL "OFF")
+		# generate the export targets for the build tree
+		# needs to be after the install(TARGETS ) command
+		export(EXPORT "${PROJECT_NAME}Targets"
+			NAMESPACE "Ubpa::"
+			FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+		)
+		
+		# install the configuration targets
+		install(EXPORT "${PROJECT_NAME}Targets"
+			FILE "${PROJECT_NAME}Targets.cmake"
+			NAMESPACE "Ubpa::"
+			DESTINATION "${package_name}/cmake"
+		)
+	endif()
 	
 	include(CMakePackageConfigHelpers)
 	
 	# generate the config file that is includes the exports
 	configure_package_config_file(${PROJECT_SOURCE_DIR}/config/Config.cmake.in
 		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
-		INSTALL_DESTINATION "lib/${package_name}/cmake"
+		INSTALL_DESTINATION "${package_name}/cmake"
 		NO_SET_AND_CHECK_MACRO
 		NO_CHECK_REQUIRED_COMPONENTS_MACRO
 	)
@@ -55,27 +66,15 @@ macro(Ubpa_Export)
 		VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
 		COMPATIBILITY AnyNewerVersion
 	)
-	
+
 	# install the configuration file
 	install(FILES
 		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
 		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-		DESTINATION "lib/${package_name}/cmake"
-	)
-
-	# generate the export targets for the build tree
-	# needs to be after the install(TARGETS ) command
-	export(EXPORT "${PROJECT_NAME}Targets"
-		NAMESPACE "${PROJECT_NAME}::"
-		FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
-	)
-
-	install(FILES
-		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
-		DESTINATION "lib/${package_name}/cmake"
+		DESTINATION "${package_name}/cmake"
 	)
 	
 	if(NOT "${ARG_INC}" STREQUAL "OFF")
-		install(DIRECTORY "include" DESTINATION ${CMAKE_INSTALL_PREFIX})
+		install(DIRECTORY "include" DESTINATION ${package_name})
 	endif()
 endmacro()
