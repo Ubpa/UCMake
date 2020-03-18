@@ -24,13 +24,14 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_AddTarget_GDR(MODE <mode> [QT <qt>] [SOURCES <sources-list>] [TEST <test>]
+# Ubpa_AddTarget_GDR(MODE <mode> [QT <qt>] [SOURCES <sources-list>] [TEST <test>] [INTERFACE_INC <interface_inc>]
 #     [LIBS_GENERAL <libsG-list>] [LIBS_DEBUG <libsD-list>] [LIBS_RELEASE <libsR-list>])
-# - mode         : EXE / LIB / DLL
-# - qt           : default OFF, for moc, uic, qrc
-# - test         : default OFF, test won't install
-# - libsG-list   : auto add DEBUG_POSTFIX for debug mode
-# - sources-list : if sources is empty, call Ubpa_GlobGroupSrcs for currunt path
+# - mode          : EXE / LIB / DLL / HEAD
+# - qt            : default OFF, for moc, uic, qrc
+# - test          : default OFF, test won't install
+# - libsG-list    : auto add DEBUG_POSTFIX for debug mode
+# - interface_inc : default OFF, set target interface to auto include
+# - sources-list  : if sources is empty, call Ubpa_GlobGroupSrcs for currunt path
 # - auto set target name, folder, target prefix and some properties
 #
 # ----------------------------------------------------------------------------
@@ -144,7 +145,7 @@ endfunction()
 function(Ubpa_AddTarget_GDR)
     # https://www.cnblogs.com/cynchanpin/p/7354864.html
 	# https://blog.csdn.net/fuyajun01/article/details/9036443
-	cmake_parse_arguments("ARG" "" "MODE;QT;TEST" "SOURCES;LIBS_GENERAL;LIBS_DEBUG;LIBS_RELEASE" ${ARGN})
+	cmake_parse_arguments("ARG" "" "MODE;QT;TEST;INTERFACE_INC" "SOURCES;LIBS_GENERAL;LIBS_DEBUG;LIBS_RELEASE" ${ARGN})
 	file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/..")
 	set(folderPath "${PROJECT_NAME}/${targetRelPath}")
 	Ubpa_GetTargetName(targetName ${CMAKE_CURRENT_SOURCE_DIR})
@@ -211,14 +212,6 @@ function(Ubpa_AddTarget_GDR)
 	elseif(${ARG_MODE} STREQUAL "HEAD")
 		add_library(${targetName} INTERFACE)
 		add_library("Ubpa::${targetName}" ALIAS ${targetName})
-		#set_target_properties(${targetName} PROPERTIES LINKER_LANGUAGE CXX)
-		foreach(dir ${ARG_SOURCES})
-			target_include_directories(${targetName} INTERFACE
-				$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${dir}>
-				$<INSTALL_INTERFACE:${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}/${dir}>
-			)
-		endforeach()
-		#set_target_properties(${targetName} PROPERTIES LINKER_LANGUAGE CXX)
 		# 无需手动设置
 		#set_target_properties(${targetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 		set(targets ${targetName})
@@ -239,15 +232,10 @@ function(Ubpa_AddTarget_GDR)
 	endif()
 	
 	foreach(target ${targets})
-		# export
-		if(NOT ${ARG_MODE} STREQUAL "EXE")
-			export(TARGETS ${target} NAMESPACE "Ubpa::" FILE ${PROJECT_NAME}Targets.cmake)
-		endif()
 		# folder
 		if(NOT ${ARG_MODE} STREQUAL "HEAD")
 			set_target_properties(${target} PROPERTIES FOLDER ${folderPath})
 		endif()
-		
 		
 		if(${ARG_MODE} STREQUAL "HEAD")
 			foreach(lib ${ARG_LIBS_GENERAL})
@@ -270,6 +258,13 @@ function(Ubpa_AddTarget_GDR)
 				target_link_libraries(${target} optimized ${lib})
 			endforeach()
 		endif()
+		
+		if("${INTERFACE_INC}" STREQUAL "ON")
+			target_include_directories(${target} INTERFACE
+				$<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include">
+				$<INSTALL_INTERFACE:"${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}/include">
+			)
+		endif()
 	endforeach()
 	
 	foreach(target ${targets})
@@ -290,6 +285,6 @@ endfunction()
 function(Ubpa_AddTarget)
     # https://www.cnblogs.com/cynchanpin/p/7354864.html
 	# https://blog.csdn.net/fuyajun01/article/details/9036443
-	cmake_parse_arguments("ARG" "" "MODE;QT;TEST" "SOURCES;LIBS" ${ARGN})
-	Ubpa_AddTarget_GDR(MODE ${ARG_MODE} QT ${ARG_QT} TEST ${ARG_TEST} SOURCES ${ARG_SOURCES} LIBS_GENERAL ${ARG_LIBS})
+	cmake_parse_arguments("ARG" "" "MODE;QT;TEST;INTERFACE_INC" "SOURCES;LIBS" ${ARGN})
+	Ubpa_AddTarget_GDR(MODE ${ARG_MODE} QT ${ARG_QT} TEST ${ARG_TEST} INTERFACE_INC ${ARG_INTERFACE_INC} SOURCES ${ARG_SOURCES} LIBS_GENERAL ${ARG_LIBS})
 endfunction()

@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # 设定项目
-project (UCmake VERSION 0.1)
+project (UCmake VERSION 0.2)
 message(STATUS "[Project] ${PROJECT_NAME}")
 
 # 在 Debug 模式下自动对 dll 和 lib 文件名后边加 d，但 exe 仍然需要手动设置
@@ -45,10 +45,6 @@ endif()
 
 include_directories (
 	${PROJECT_SOURCE_DIR}/include
-)
-
-link_directories (
-	${PROJECT_SOURCE_DIR}/lib
 )
 
 Ubpa_AddSubDirsRec(src)

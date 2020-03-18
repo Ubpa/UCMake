@@ -13,18 +13,22 @@
 message(STATUS "include UbpaPackage.cmake")
 
 macro(Ubpa_AddDep name version)
+	message(STATUS "find package: ${name}-${version}")
 	find_package(${name} ${version} EXACT QUIET)
-	if(${UCMake_FOUND})
+	if(${${name}_FOUND})
 		message(STATUS "${name}-${version} found")
 	else()
-		message(STATUS "${name}-${version} not found, so fetch it ...")
+		set(_address "https://github.com/Ubpa/${name}")
+		message(STATUS "${name}-${version} not found, so fetch it ...\n"
+		"fetch: ${_address} with tag v${version}")
 		FetchContent_Declare(
 		  ${name}
 		  GIT_REPOSITORY "https://github.com/Ubpa/${name}"
 		  GIT_TAG "v${version}"
 		)
+		message(STATUS "${name}-${version} fetch done, building ...")
 		FetchContent_MakeAvailable(${name})
-		message(STATUS "${name}-${version} fetch done")
+		message(STATUS "${name}-${version} build done")
 	endif()
 endmacro()
 
@@ -39,7 +43,7 @@ macro(Ubpa_Export)
 		# needs to be after the install(TARGETS ) command
 		export(EXPORT "${PROJECT_NAME}Targets"
 			NAMESPACE "Ubpa::"
-			FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
+		#	#FILE "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Targets.cmake"
 		)
 		
 		# install the configuration targets
