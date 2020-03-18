@@ -206,12 +206,24 @@ function(Ubpa_AddTarget_GDR)
 	elseif(${ARG_MODE} STREQUAL "LIB")
 		add_library(${targetName} ${ARG_SOURCES})
 		add_library("Ubpa::${targetName}" ALIAS ${targetName})
+		if("${ARG_INTERFACE_INC}" STREQUAL "ON")
+			target_include_directories(${targetName} PUBLIC
+				$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+				$<INSTALL_INTERFACE:${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}/include>
+			)
+		endif()
 		# 无需手动设置
 		#set_target_properties(${targetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 		set(targets ${targetName})
 	elseif(${ARG_MODE} STREQUAL "HEAD")
 		add_library(${targetName} INTERFACE)
 		add_library("Ubpa::${targetName}" ALIAS ${targetName})
+		if("${ARG_INTERFACE_INC}" STREQUAL "ON")
+			target_include_directories(${targetName} INTERFACE
+				$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+				$<INSTALL_INTERFACE:${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}/include>
+			)
+		endif()
 		# 无需手动设置
 		#set_target_properties(${targetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
 		set(targets ${targetName})
@@ -257,13 +269,6 @@ function(Ubpa_AddTarget_GDR)
 			foreach(lib ${ARG_LIBS_RELEASE})
 				target_link_libraries(${target} optimized ${lib})
 			endforeach()
-		endif()
-		
-		if("${INTERFACE_INC}" STREQUAL "ON")
-			target_include_directories(${target} INTERFACE
-				$<BUILD_INTERFACE:"${PROJECT_SOURCE_DIR}/include">
-				$<INSTALL_INTERFACE:"${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}/include">
-			)
 		endif()
 	endforeach()
 	
