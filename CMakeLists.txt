@@ -2,8 +2,8 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # 设定项目
-project (UCmake VERSION 0.2)
-message(STATUS "[Project] ${PROJECT_NAME}")
+project (UCmake VERSION 0.2.0)
+message(STATUS "[Project] ${PROJECT_NAME} ${PROJECT_VERSION}")
 
 # 在 Debug 模式下自动对 dll 和 lib 文件名后边加 d，但 exe 仍然需要手动设置
 set(CMAKE_DEBUG_POSTFIX d)
@@ -49,5 +49,5 @@ include_directories (
 
 Ubpa_AddSubDirsRec(src)
 
-install(DIRECTORY "cmake" DESTINATION "${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+install(DIRECTORY "cmake" DESTINATION "${PROJECT_NAME}-${PROJECT_VERSION}")
 Ubpa_Export(INC OFF TARGET OFF)

@@ -12,9 +12,13 @@
 
 message(STATUS "include UbpaPackage.cmake")
 
+function(Ubpa_PackageName rst)
+	set(${rst} "${PROJECT_NAME}-${PROJECT_VERSION}" PARENT_SCOPE)
+endfunction()
+
 macro(Ubpa_AddDep name version)
 	message(STATUS "find package: ${name}-${version}")
-	find_package(${name} ${version} EXACT QUIET)
+	find_package(${name} ${version} QUIET)
 	if(${${name}_FOUND})
 		message(STATUS "${name}-${version} found")
 	else()
@@ -35,7 +39,8 @@ endmacro()
 macro(Ubpa_Export)
 	cmake_parse_arguments("ARG" "" "INC;TARGET" "" ${ARGN})
 	
-	set(package_name "${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}")
+	Ubpa_PackageName(package_name)
+	message(STATUS "${package_name}")
 	message(STATUS "export ${package_name}")
 	
 	if(NOT "${ARG_TARGET}" STREQUAL "OFF")
@@ -67,8 +72,8 @@ macro(Ubpa_Export)
 	# generate the version file for the config file
 	write_basic_package_version_file(
 		"${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-		VERSION "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
-		COMPATIBILITY AnyNewerVersion
+		VERSION ${PROJECT_VERSION}
+		COMPATIBILITY SameMinorVersion
 	)
 
 	# install the configuration file

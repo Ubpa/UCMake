@@ -48,6 +48,7 @@
 message(STATUS "include UbpaBuild.cmake")
 
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaQt.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/UbpaPackage.cmake")
 
 macro(Ubpa_InitInstallPrefix)
 	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -196,6 +197,8 @@ function(Ubpa_AddTarget_GDR)
 		Ubpa_QtBegin()
 	endif()
 	
+	Ubpa_PackageName(package_name)
+	
 	if(${ARG_MODE} STREQUAL "EXE")
 		add_executable(${targetName} ${ARG_SOURCES})
 		if(MSVC)
@@ -209,7 +212,7 @@ function(Ubpa_AddTarget_GDR)
 		if("${ARG_INTERFACE_INC}" STREQUAL "ON")
 			target_include_directories(${targetName} PUBLIC
 				$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-				$<INSTALL_INTERFACE:${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}/include>
+				$<INSTALL_INTERFACE:${package_name}/include>
 			)
 		endif()
 		# 无需手动设置
@@ -221,7 +224,7 @@ function(Ubpa_AddTarget_GDR)
 		if("${ARG_INTERFACE_INC}" STREQUAL "ON")
 			target_include_directories(${targetName} INTERFACE
 				$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-				$<INSTALL_INTERFACE:${PROJECT_NAME}-${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}/include>
+				$<INSTALL_INTERFACE:${package_name}/include>
 			)
 		endif()
 		# 无需手动设置
@@ -277,8 +280,8 @@ function(Ubpa_AddTarget_GDR)
 			install(TARGETS ${target}
 				EXPORT "${PROJECT_NAME}Targets"
 				RUNTIME DESTINATION "bin"
-				ARCHIVE DESTINATION "lib"
-				LIBRARY DESTINATION "lib")
+				ARCHIVE DESTINATION "${package_name}/lib"
+				LIBRARY DESTINATION "${package_name}/lib")
 		endif()
 	endforeach()
 	
