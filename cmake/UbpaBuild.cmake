@@ -138,9 +138,10 @@ function(Ubpa_GlobGroupSrcs)
 endfunction()
 
 function(Ubpa_GetTargetName rst targetPath)
+	Ubpa_PackageName(package_name)
 	file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${targetPath}")
-	string(REPLACE "/" "_" targetName "${PROJECT_NAME}/${targetRelPath}")
-	set(${rst} ${targetName} PARENT_SCOPE) 
+	string(REPLACE "/" "_" targetName "${package_name}/${targetRelPath}")
+	set(${rst} ${targetName} PARENT_SCOPE)
 endfunction()
 
 function(Ubpa_AddTarget_GDR)
