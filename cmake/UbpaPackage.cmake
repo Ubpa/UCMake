@@ -97,25 +97,27 @@ macro(Ubpa_Export)
 	
 	if(${_Ubpa_Package_have_dependencies})
 		set(UBPA_PACKAGE_INIT "
-if(NOT ${FetchContent_FOUND})
+if(NOT \${FetchContent_FOUND})
 	include(FetchContent)
 endif()
-message(STATUS \"find package: UCMake v${UCMake_VERSION}\")
-find_package(UCMake ${UCMake_VERSION} QUIET)
-if(\${UCMake_FOUND})
-	message(STATUS \"UCMake v\${UCMake_VERSION} found\")
-else()
-	set(_Ubpa_Package_address \"https://github.com/Ubpa/UCMake\")
-	message(STATUS \"UCMake v${UCMake_VERSION} not found, so fetch it ...\")
-	message(STATUS \"fetch: \${_Ubpa_Package_address} with tag v${UCMake_VERSION}\")
-	FetchContent_Declare(
-	  UCMake
-	  GIT_REPOSITORY \${_Ubpa_Package_address}
-	  GIT_TAG \"v${UCMake_VERSION}\"
-	)
-	message(STATUS \"UCMake v${UCMake_VERSION} fetch done, building ...\")
-	FetchContent_MakeAvailable(UCMake)
-	message(STATUS \"UCMake v${UCMake_VERSION} build done\")
+if(NOT \${UCMake_FOUND})
+	message(STATUS \"find package: UCMake v${UCMake_VERSION}\")
+	find_package(UCMake ${UCMake_VERSION} QUIET)
+	if(\${UCMake_FOUND})
+		message(STATUS \"UCMake v\${UCMake_VERSION} found\")
+	else()
+		set(_Ubpa_Package_address \"https://github.com/Ubpa/UCMake\")
+		message(STATUS \"UCMake v${UCMake_VERSION} not found, so fetch it ...\")
+		message(STATUS \"fetch: \${_Ubpa_Package_address} with tag v${UCMake_VERSION}\")
+		FetchContent_Declare(
+		  UCMake
+		  GIT_REPOSITORY \${_Ubpa_Package_address}
+		  GIT_TAG \"v${UCMake_VERSION}\"
+		)
+		message(STATUS \"UCMake v${UCMake_VERSION} fetch done, building ...\")
+		FetchContent_MakeAvailable(UCMake)
+		message(STATUS \"UCMake v${UCMake_VERSION} build done\")
+	endif()
 endif()
 
 if(MSVC)
@@ -181,6 +183,11 @@ endif()
 	
 	foreach(dir ${ARG_DIRECTORIES})
 		string(REGEX MATCH "(.*)/" prefix ${dir})
-		install(DIRECTORY ${dir} DESTINATION "${package_name}/${CMAKE_MATCH_1}")
+		if("${CMAKE_MATCH_1}" STREQUAL "")
+			set(_destination "${package_name}")
+		else()
+			set(_destination "${package_name}/${CMAKE_MATCH_1}")
+		endif()
+		install(DIRECTORY ${dir} DESTINATION "${_destination}")
 	endforeach()
 endmacro()
