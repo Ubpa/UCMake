@@ -77,6 +77,7 @@ else()
 	FetchContent_MakeAvailable(UCMake)
 	message(STATUS \"UCMake v${UCMake_VERSION} build done\")
 endif()
+
 if(MSVC)
 	if(EXISTS \"\${CMAKE_CURRENT_LIST_DIR}/${package_name}.natvis\")
 		if(NOT \"\${EXIST_UBPA_NATVIS_EXE}\")
@@ -138,7 +139,8 @@ endif()
 		DESTINATION "${package_name}/cmake"
 	)
 	
-	foreach(_dir ${ARG_DIRECTORIES})
-		install(DIRECTORY ${_dir} DESTINATION ${package_name})
+	foreach(dir ${ARG_DIRECTORIES})
+		string(REGEX MATCH "(.*)/" prefix ${dir})
+		install(DIRECTORY ${dir} DESTINATION "${package_name}/${CMAKE_MATCH_1}")
 	endforeach()
 endmacro()
