@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
 
 # 设定项目
-project (UCMake VERSION 0.4.0)
+project (UCMake VERSION 0.4.1)
 message(STATUS "[Project] ${PROJECT_NAME} ${PROJECT_VERSION}")
 
 # 在 Debug 模式下自动对 dll 和 lib 文件名后边加 d，但 exe 仍然需要手动设置
@@ -36,6 +36,8 @@ include(UbpaTool)
 
 # 修改默认的安装路径前缀
 Ubpa_InitInstallPrefix()
+
+Ubpa_InitTestSwitch()
 
 set(TEST_QT OFF CACHE BOOL OFF)
 if(TEST_QT)
