@@ -68,14 +68,13 @@ macro(Ubpa_AddDepPro projectName name version)
 			message(STATUS "${name} v${${name}_VERSION} found")
 		else()
 			set(_address "https://github.com/Ubpa/${name}")
-			message(STATUS "${name} v${version} not found, so fetch it ..."
-			"fetch: ${_address} with tag v${version}")
+			message(STATUS "${name} v${version} not found")
+			message(STATUS "fetch: ${_address} with tag v${version}")
 			FetchContent_Declare(
 			  ${name}
 			  GIT_REPOSITORY ${_address}
 			  GIT_TAG "v${version}"
 			)
-			message(STATUS "${name} v${version} fetch done, building ...")
 			FetchContent_MakeAvailable(${name})
 			message(STATUS "${name} v${version} build done")
 		endif()
@@ -105,7 +104,7 @@ if(NOT \${UCMake_FOUND})
 		message(STATUS \"UCMake v\${UCMake_VERSION} found\")
 	else()
 		set(_Ubpa_${PROJECT_NAME}_address \"https://github.com/Ubpa/UCMake\")
-		message(STATUS \"UCMake v${UCMake_VERSION} not found, so fetch it ...\")
+		message(STATUS \"UCMake v${UCMake_VERSION} not found\")
 		message(STATUS \"fetch: \${_Ubpa_${PROJECT_NAME}_address} with tag v${UCMake_VERSION}\")
 		FetchContent_Declare(
 		  UCMake
