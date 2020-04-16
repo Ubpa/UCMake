@@ -286,13 +286,6 @@ function(Ubpa_AddTarget_GDR)
 			set_target_properties(${target} PROPERTIES FOLDER ${folderPath})
 		endif()
 		
-		foreach(incdir ${ARG_INC_DIRS})
-			target_include_directories(${target} PUBLIC
-				$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/${incdir}>
-				$<INSTALL_INTERFACE:${package_name}/include/${incdir}>
-			)
-		endforeach()
-		
 		if(${ARG_MODE} STREQUAL "HEAD")
 			foreach(lib ${ARG_LIBS_GENERAL})
 				target_link_libraries(${target} INTERFACE general ${lib})
@@ -306,6 +299,12 @@ function(Ubpa_AddTarget_GDR)
 			foreach(lib ${ARG_PUBLIC_GLIBS})
 				target_link_libraries(${target} INTERFACE general ${lib})
 			endforeach()
+			foreach(incdir ${ARG_INC_DIRS})
+				target_include_directories(${target} INTERFACE
+					$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/${incdir}>
+					$<INSTALL_INTERFACE:${package_name}/include/${incdir}>
+				)
+			endforeach()
 		else()
 			foreach(lib ${ARG_LIBS_GENERAL})
 				target_link_libraries(${target} PRIVATE general ${lib})
@@ -318,6 +317,12 @@ function(Ubpa_AddTarget_GDR)
 			endforeach()
 			foreach(lib ${ARG_PUBLIC_GLIBS})
 				target_link_libraries(${target} PUBLIC general ${lib})
+			endforeach()
+			foreach(incdir ${ARG_INC_DIRS})
+				target_include_directories(${target} PUBLIC
+					$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include/${incdir}>
+					$<INSTALL_INTERFACE:${package_name}/include/${incdir}>
+				)
 			endforeach()
 		endif()
 	endforeach()
