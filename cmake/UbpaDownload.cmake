@@ -57,6 +57,7 @@ function(Ubpa_DownloadZip_Pro url zipname dir hash_type hash)
 		EXPECTED_HASH ${hash_type}=${hash}
 		TLS_VERIFY ON)
 	# this is OS-agnostic
+	file(MAKE_DIRECTORY ${dir})
 	execute_process(COMMAND ${CMAKE_COMMAND} -E tar -xf ${filename}
 		WORKING_DIRECTORY ${dir})
 endfunction()
