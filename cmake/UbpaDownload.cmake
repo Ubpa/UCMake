@@ -20,6 +20,8 @@ function(Ubpa_DownloadFile url filename hash_type hash)
 		message(STATUS "Found File: ${filename}")
 		return()
 	endif()
+	string(REGEX MATCH ".*/" dir ${filename})
+	file(MAKE_DIRECTORY ${dir})
 	message(STATUS "Download File: ${filename}")
 	file(DOWNLOAD ${url} ${filename}
 		TIMEOUT 60  # seconds
