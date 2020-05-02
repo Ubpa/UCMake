@@ -89,11 +89,14 @@ macro(Ubpa_Export)
 	cmake_parse_arguments("ARG" "" "TARGET" "DIRECTORIES" ${ARGN})
 	
 	Ubpa_PackageName(package_name)
-	message(STATUS "${package_name}")
 	message(STATUS "export ${package_name}")
+
+	set(UBPA_PACKAGE_INIT "
+get_filename_component(include_dir \"\${CMAKE_CURRENT_LIST_DIR}/../include\" ABSOLUTE)
+include_directories(\"\${include_dir}\")\n")
 	
 	if(${_Ubpa_${PROJECT_NAME}_have_dependencies})
-		set(UBPA_PACKAGE_INIT "
+		set(UBPA_PACKAGE_INIT "${UBPA_PACKAGE_INIT}
 if(NOT \${FetchContent_FOUND})
 	include(FetchContent)
 endif()
@@ -111,7 +114,6 @@ if(NOT \${UCMake_FOUND})
 		  GIT_REPOSITORY \${_Ubpa_${PROJECT_NAME}_address}
 		  GIT_TAG \"v${UCMake_VERSION}\"
 		)
-		message(STATUS \"UCMake ${UCMake_VERSION} fetch done, building ...\")
 		FetchContent_MakeAvailable(UCMake)
 		message(STATUS \"UCMake ${UCMake_VERSION} build done\")
 	endif()

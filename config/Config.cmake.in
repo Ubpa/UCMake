@@ -1,9 +1,9 @@
-message(STATUS "config @PROJECT_NAME@...")
+message(STATUS "config @PROJECT_NAME@ @PROJECT_VERSION@ ...")
 
 @PACKAGE_INIT@
 
-include ( "${CMAKE_CURRENT_LIST_DIR}/UbpaTool.cmake")
+include ( "${CMAKE_CURRENT_LIST_DIR}/UbpaInit.cmake")
 
 @UBPA_PACKAGE_INIT@
 
-message(STATUS "config @PROJECT_NAME@ done")
+message(STATUS "config @PROJECT_NAME@ @PROJECT_VERSION@  done")

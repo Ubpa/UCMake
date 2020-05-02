@@ -1,1 +1,4 @@
-Ubpa_AddTarget(MODE "EXE" TEST ON)
+Ubpa_AddTarget(TEST
+	MODE EXE
+	SOURCE "${PROJECT_SOURCE_DIR}/cmake"
+)
