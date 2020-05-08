@@ -33,7 +33,7 @@ function(Ubpa_AddTarget)
   # INC: dir
   
   # test
-  if(ARG_TEST AND NOT ${Ubpa_Build${PROJECT_NAME}Test})
+  if(ARG_TEST AND NOT "${Ubpa_Build${PROJECT_NAME}Test}")
     return()
   endif()
   

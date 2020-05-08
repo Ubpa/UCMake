@@ -10,6 +10,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/UbpaTool.cmake")
 
 # ---------------------------------------------------------
 
+macro(Ubpa_InitProject)
 set(CMAKE_DEBUG_POSTFIX d)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -25,7 +26,6 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 endif()
 
 set("Ubpa_Build${PROJECT_NAME}Test" OFF CACHE BOOL "build ${PROJECT_NAME} test")
-set(Ubpa_BuildTest OFF CACHE BOOL "build all project test")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${PROJECT_SOURCE_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG "${PROJECT_SOURCE_DIR}/bin")
@@ -55,4 +55,4 @@ if(MSVC AND EXISTS "${PROJECT_SOURCE_DIR}/config/natvis.in")
       DESTINATION "${package_name}/cmake"
     )
 endif()
-
+endmacro()
