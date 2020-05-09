@@ -97,22 +97,20 @@ include_directories(\"\${include_dir}\")\n")
 	
 	if(${_Ubpa_${PROJECT_NAME}_have_dependencies})
 		set(UBPA_PACKAGE_INIT "${UBPA_PACKAGE_INIT}
-if(NOT \${FetchContent_FOUND})
+if(NOT FetchContent_FOUND)
 	include(FetchContent)
 endif()
-if(NOT \${UCMake_FOUND})
+if(NOT UCMake_FOUND)
 	message(STATUS \"find package: UCMake ${UCMake_VERSION}\")
 	find_package(UCMake ${UCMake_VERSION} QUIET)
-	if(\${UCMake_FOUND})
-		message(STATUS \"UCMake \${UCMake_VERSION} found\")
-	else()
+	if(NOT UCMake_FOUND)
 		set(_Ubpa_${PROJECT_NAME}_address \"https://github.com/Ubpa/UCMake\")
 		message(STATUS \"UCMake ${UCMake_VERSION} not found\")
-		message(STATUS \"fetch: \${_Ubpa_${PROJECT_NAME}_address} with tag ${UCMake_VERSION}\")
+		message(STATUS \"fetch: \${_Ubpa_${PROJECT_NAME}_address} with tag \${UCMake_VERSION}\")
 		FetchContent_Declare(
 		  UCMake
 		  GIT_REPOSITORY \${_Ubpa_${PROJECT_NAME}_address}
-		  GIT_TAG \"v${UCMake_VERSION}\"
+		  GIT_TAG ${UCMake_VERSION}
 		)
 		FetchContent_MakeAvailable(UCMake)
 		message(STATUS \"UCMake ${UCMake_VERSION} build done\")

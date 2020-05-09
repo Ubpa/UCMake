@@ -2,7 +2,7 @@ message(STATUS "config @PROJECT_NAME@ @PROJECT_VERSION@ ...")
 
 @PACKAGE_INIT@
 
-include ( "${CMAKE_CURRENT_LIST_DIR}/UbpaInit.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/UbpaInit.cmake")
 
 @UBPA_PACKAGE_INIT@
 
