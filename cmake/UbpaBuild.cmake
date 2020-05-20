@@ -23,14 +23,19 @@ function(Ubpa_GetTargetName rst targetPath)
 endfunction()
 
 function(Ubpa_AddTarget)
-  cmake_parse_arguments("ARG" "TEST" "MODE" "SOURCE;DEFINE;LIB;INC;DEFINE_PRIVATE;LIB_PRIVATE;INC_PRIVATE" ${ARGN})
+  cmake_parse_arguments("ARG" "TEST" "MODE;RET_TARGET_NAME" "SOURCE;INC;LIB;DEFINE;C_OPTION;INC_PRIVATE;LIB_PRIVATE;DEFINE_PRIVATE;C_OPTION_PRIVATE" ${ARGN})
   
-  # option: TEST
+  # [option]
+  # TEST
+  # [value]
   # MODE: EXE / STATIC / SHARED / HEAD
-  # SOURCE: dir(recursive), file, auto add currunt dir
-  # DEFINE: #define ...
-  # LIB: <lib-target>, *.lib
-  # INC: dir
+  # RET_TARGET_NAME
+  # [list]
+  # SOURCE: dir(recursive), file, auto add currunt dir | target_sources
+  # INC: dir                                           | target_include_directories
+  # LIB: <lib-target>, *.lib                           | target_link_libraries
+  # DEFINE: #define ...                                | target_compile_definitions
+  # C_OPTION: compile options                          | target_compile_options
   
   # test
   if(ARG_TEST AND NOT "${Ubpa_Build${PROJECT_NAME}Test}")
@@ -102,6 +107,9 @@ function(Ubpa_AddTarget)
   set(targetFolder "${PROJECT_NAME}/${targetRelPath}")
   
   Ubpa_GetTargetName(targetName ${CMAKE_CURRENT_SOURCE_DIR})
+  if(NOT  "${ARG_RET_TARGET_NAME}" STREQUAL "")
+    set(${ARG_RET_TARGET_NAME} ${targetName} PARENT_SCOPE)
+  endif()
   
   # print
   message(STATUS "----------")
@@ -128,6 +136,12 @@ function(Ubpa_AddTarget)
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_INC_PRIVATE}
     TITLE  "- inc private:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_C_OPTION}
+    TITLE  "- opt:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_C_OPTION_PRIVATE}
+    TITLE  "- opt private:"
     PREFIX "  * ")
   
   Ubpa_PackageName(package_name)
@@ -213,6 +227,16 @@ function(Ubpa_AddTarget)
       )
     endif()
   endforeach()
+  
+  # target option
+  if(NOT ${ARG_MODE} STREQUAL "HEAD")
+    target_compile_options(${targetName}
+      PUBLIC ${ARG_C_OPTION}
+      PRIVATE ${ARG_C_OPTION_PRIVATE}
+    )
+  else()
+    target_compile_options(${targetName} INTERFACE ${ARG_C_OPTION} ${ARG_C_OPTION_PRIVATE})
+  endif()
   
   if(NOT ARG_TEST)
     install(TARGETS ${targetName}
