@@ -23,19 +23,24 @@ function(Ubpa_GetTargetName rst targetPath)
 endfunction()
 
 function(Ubpa_AddTarget)
-  cmake_parse_arguments("ARG" "TEST" "MODE;RET_TARGET_NAME" "SOURCE;INC;LIB;DEFINE;C_OPTION;INC_PRIVATE;LIB_PRIVATE;DEFINE_PRIVATE;C_OPTION_PRIVATE" ${ARGN})
+  set(arglist "")
+  list(APPEND arglist SOURCE INC LIB DEFINE C_OPTION L_OPTION)
+  list(APPEND arglist INC_INTERFACE LIB_INTERFACE DEFINE_INTERFACE C_OPTION_INTERFACE L_OPTION_INTERFACE)
+  list(APPEND arglist INC_PRIVATE LIB_PRIVATE DEFINE_PRIVATE C_OPTION_PRIVATE L_OPTION_PRIVATE)
+  cmake_parse_arguments("ARG" "TEST" "MODE;RET_TARGET_NAME" "${arglist}" ${ARGN})
   
   # [option]
   # TEST
   # [value]
   # MODE: EXE / STATIC / SHARED / HEAD
   # RET_TARGET_NAME
-  # [list]
+  # [list] : public, interface, private
   # SOURCE: dir(recursive), file, auto add currunt dir | target_sources
   # INC: dir                                           | target_include_directories
   # LIB: <lib-target>, *.lib                           | target_link_libraries
   # DEFINE: #define ...                                | target_compile_definitions
   # C_OPTION: compile options                          | target_compile_options
+  # L_OPTION: link options                             | target_link_options
   
   # test
   if(ARG_TEST AND NOT "${Ubpa_Build${PROJECT_NAME}Test}")
@@ -128,20 +133,47 @@ function(Ubpa_AddTarget)
   Ubpa_List_Print(STRS ${ARG_LIB}
     TITLE  "- lib:"
     PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_LIB_INTERFACE}
+    TITLE  "- lib interface:"
+    PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_LIB_PRIVATE}
     TITLE  "- lib private:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_INC}
     TITLE  "- inc:"
     PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_INC_INTERFACE}
+    TITLE  "- inc interface:"
+    PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_INC_PRIVATE}
     TITLE  "- inc private:"
     PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_DEFINE}
+    TITLE  "- define:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_DEFINE_INTERFACE}
+    TITLE  "- define interface:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_DEFINE_PRIVATE}
+    TITLE  "- define private:"
+    PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_C_OPTION}
-    TITLE  "- opt:"
+    TITLE  "- compile opt:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_C_OPTION_INTERFACE}
+    TITLE  "- compile opt interface:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_C_OPTION_PRIVATE}
-    TITLE  "- opt private:"
+    TITLE  "- compile opt private:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_L_OPTION}
+    TITLE  "- link opt:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_L_OPTION_INTERFACE}
+    TITLE  "- link opt interface:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_L_OPTION_PRIVATE}
+    TITLE  "- link opt private:"
     PREFIX "  * ")
   
   Ubpa_PackageName(package_name)
@@ -184,20 +216,22 @@ function(Ubpa_AddTarget)
   if(NOT ${ARG_MODE} STREQUAL "HEAD")
     target_compile_definitions(${targetName}
       PUBLIC ${ARG_DEFINE}
+	  INTERFACE ${ARG_DEFINE_INTERFACE}
       PRIVATE ${ARG_DEFINE_PRIVATE}
     )
   else()
-    target_compile_definitions(${targetName} INTERFACE ${ARG_DEFINE} ${ARG_DEFINE_PRIVATE})
+    target_compile_definitions(${targetName} INTERFACE ${ARG_DEFINE} ${ARG_DEFINE_PRIVATE} ${ARG_DEFINE_INTERFACE})
   endif()
   
   # target lib
   if(NOT ${ARG_MODE} STREQUAL "HEAD")
     target_link_libraries(${targetName}
       PUBLIC ${ARG_LIB}
+	  INTERFACE ${ARG_LIB_INTERFACE}
       PRIVATE ${ARG_LIB_PRIVATE}
     )
   else()
-    target_link_libraries(${targetName} INTERFACE ${ARG_LIB} ${ARG_LIB_PRIVATE})
+    target_link_libraries(${targetName} INTERFACE ${ARG_LIB} ${ARG_LIB_PRIVATE} ${ARG_LIB_INTERFACE})
   endif()
   
   # target inc
@@ -227,15 +261,33 @@ function(Ubpa_AddTarget)
       )
     endif()
   endforeach()
+  foreach(inc ${ARG_INC_INTERFACE})
+    target_include_directories(${targetName} INTERFACE
+      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${inc}>
+      $<INSTALL_INTERFACE:${package_name}/${inc}>
+    )
+  endforeach()
   
-  # target option
+  # target compile option
   if(NOT ${ARG_MODE} STREQUAL "HEAD")
     target_compile_options(${targetName}
       PUBLIC ${ARG_C_OPTION}
+      INTERFACE ${ARG_C_OPTION_INTERFACE}
       PRIVATE ${ARG_C_OPTION_PRIVATE}
     )
   else()
-    target_compile_options(${targetName} INTERFACE ${ARG_C_OPTION} ${ARG_C_OPTION_PRIVATE})
+    target_compile_options(${targetName} INTERFACE ${ARG_C_OPTION} ${ARG_C_OPTION_PRIVATE} ${ARG_C_OPTION_INTERFACE})
+  endif()
+  
+  # target link option
+  if(NOT ${ARG_MODE} STREQUAL "HEAD")
+    target_link_options(${targetName}
+      PUBLIC ${ARG_L_OPTION}
+      INTERFACE ${ARG_L_OPTION_INTERFACE}
+      PRIVATE ${ARG_L_OPTION_PRIVATE}
+    )
+  else()
+    target_compile_options(${targetName} INTERFACE ${ARG_L_OPTION} ${ARG_L_OPTION_PRIVATE} ${ARG_L_OPTION_INTERFACE})
   endif()
   
   if(NOT ARG_TEST)
