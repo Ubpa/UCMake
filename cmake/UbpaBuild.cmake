@@ -77,7 +77,10 @@ function(Ubpa_AddTarget)
         ${item}/*.frag # glsl fragment shader
         ${item}/*.comp # glsl compute shader
         
-        ${item}/*.hlsl
+        #${item}/*.hlsl
+        #${item}/*.hlsli
+        #${item}/*.fx
+        #${item}/*.fxh
         
         # Qt files
         ${item}/*.qrc
@@ -188,13 +191,13 @@ function(Ubpa_AddTarget)
     set_target_properties(${targetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
   elseif("${ARG_MODE}" STREQUAL "STATIC")
     add_library(${targetName} STATIC)
-	add_library("Ubpa::${targetName}" ALIAS ${targetName})
+   add_library("Ubpa::${targetName}" ALIAS ${targetName})
   elseif("${ARG_MODE}" STREQUAL "SHARED")
     add_library(${targetName} SHARED)
-	add_library("Ubpa::${targetName}" ALIAS ${targetName})
+   add_library("Ubpa::${targetName}" ALIAS ${targetName})
   elseif("${ARG_MODE}" STREQUAL "HEAD")
     add_library(${targetName} INTERFACE)
-	add_library("Ubpa::${targetName}" ALIAS ${targetName})
+   add_library("Ubpa::${targetName}" ALIAS ${targetName})
   else()
     message(FATAL_ERROR "mode [${ARG_MODE}] is not supported")
     return()
@@ -216,7 +219,7 @@ function(Ubpa_AddTarget)
   if(NOT ${ARG_MODE} STREQUAL "HEAD")
     target_compile_definitions(${targetName}
       PUBLIC ${ARG_DEFINE}
-	  INTERFACE ${ARG_DEFINE_INTERFACE}
+     INTERFACE ${ARG_DEFINE_INTERFACE}
       PRIVATE ${ARG_DEFINE_PRIVATE}
     )
   else()
@@ -227,7 +230,7 @@ function(Ubpa_AddTarget)
   if(NOT ${ARG_MODE} STREQUAL "HEAD")
     target_link_libraries(${targetName}
       PUBLIC ${ARG_LIB}
-	  INTERFACE ${ARG_LIB_INTERFACE}
+     INTERFACE ${ARG_LIB_INTERFACE}
       PRIVATE ${ARG_LIB_PRIVATE}
     )
   else()
