@@ -31,6 +31,7 @@ function(Ubpa_AddTarget)
   
   # [option]
   # TEST
+  # QT
   # [value]
   # MODE: EXE / STATIC / SHARED / HEAD
   # RET_TARGET_NAME
@@ -45,6 +46,10 @@ function(Ubpa_AddTarget)
   # test
   if(ARG_TEST AND NOT "${Ubpa_Build${PROJECT_NAME}Test}")
     return()
+  endif()
+  
+  if(QT)
+    Ubpa_QtBegin()
   endif()
   
   # sources
@@ -300,5 +305,9 @@ function(Ubpa_AddTarget)
       ARCHIVE DESTINATION "${package_name}/lib"
       LIBRARY DESTINATION "${package_name}/lib"
     )
+  endif()
+  
+  if(QT)
+    Ubpa_QtEnd()
   endif()
 endfunction()
