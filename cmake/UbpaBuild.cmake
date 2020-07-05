@@ -1,7 +1,6 @@
 message(STATUS "include UbpaBuild.cmake")
 
 function(Ubpa_AddSubDirsRec path)
-  message(STATUS "----------")
   file(GLOB_RECURSE children LIST_DIRECTORIES true ${CMAKE_CURRENT_SOURCE_DIR}/${path}/*)
   set(dirs "")
   list(APPEND children "${CMAKE_CURRENT_SOURCE_DIR}/${path}")
@@ -10,7 +9,6 @@ function(Ubpa_AddSubDirsRec path)
       list(APPEND dirs ${item})
     endif()
   endforeach()
-  Ubpa_List_Print(TITLE "directories:" PREFIX "- " STRS ${dirs})
   foreach(dir ${dirs})
     add_subdirectory(${dir})
   endforeach()
@@ -22,46 +20,15 @@ function(Ubpa_GetTargetName rst targetPath)
   set(${rst} ${targetName} PARENT_SCOPE)
 endfunction()
 
-function(Ubpa_AddTarget)
-  set(arglist "")
-  list(APPEND arglist SOURCE INC LIB DEFINE C_OPTION L_OPTION)
-  list(APPEND arglist INC_INTERFACE LIB_INTERFACE DEFINE_INTERFACE C_OPTION_INTERFACE L_OPTION_INTERFACE)
-  list(APPEND arglist INC_PRIVATE LIB_PRIVATE DEFINE_PRIVATE C_OPTION_PRIVATE L_OPTION_PRIVATE)
-  cmake_parse_arguments("ARG" "TEST" "MODE;RET_TARGET_NAME" "${arglist}" ${ARGN})
-  
-  # [option]
-  # TEST
-  # QT
-  # [value]
-  # MODE: EXE / STATIC / SHARED / HEAD
-  # RET_TARGET_NAME
-  # [list] : public, interface, private
-  # SOURCE: dir(recursive), file, auto add currunt dir | target_sources
-  # INC: dir                                           | target_include_directories
-  # LIB: <lib-target>, *.lib                           | target_link_libraries
-  # DEFINE: #define ...                                | target_compile_definitions
-  # C_OPTION: compile options                          | target_compile_options
-  # L_OPTION: link options                             | target_link_options
-  
-  # test
-  if(ARG_TEST AND NOT "${Ubpa_Build${PROJECT_NAME}Test}")
-    return()
-  endif()
-  
-  if(QT)
-    Ubpa_QtBegin()
-  endif()
-  
-  # sources
-  set(sources "")
-  list(APPEND ARG_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
-  foreach(item ${ARG_SOURCE})
+function(_Ubpa_ExpandSources rst _sources)
+  set(tmp_rst "")
+  foreach(item ${${_sources}})
     if(IS_DIRECTORY ${item})
       file(GLOB_RECURSE itemSrcs
         # cmake
         ${item}/*.cmake
         
-        # header files
+        # INTERFACEer files
         ${item}/*.h
         ${item}/*.hpp
         ${item}/*.hxx
@@ -91,55 +58,123 @@ function(Ubpa_AddTarget)
         ${item}/*.qrc
         ${item}/*.ui
       )
-      list(APPEND sources ${itemSrcs})
+      list(APPEND tmp_rst ${itemSrcs})
     else()
-      if(NOT IS_ABSOLUTE ${item})
-        set(item "${CMAKE_CURRENT_LIST_DIR}/${item}")
+      if(NOT IS_ABSOLUTE "${item}")
+		get_filename_component(item "${item}" ABSOLUTE)
       endif()
-      list(APPEND sources ${item})
+      list(APPEND tmp_rst ${item})
     endif()
   endforeach()
+  set(${rst} ${tmp_rst} PARENT_SCOPE)
+endfunction()
+
+function(Ubpa_AddTarget)
+  message(STATUS "----------")
+
+  set(arglist "")
+  # public
+  list(APPEND arglist SOURCE_PUBLIC INC LIB DEFINE C_OPTION L_OPTION)
+  # interface
+  list(APPEND arglist SOURCE_INTERFACE INC_INTERFACE LIB_INTERFACE DEFINE_INTERFACE C_OPTION_INTERFACE L_OPTION_INTERFACE)
+  # private
+  list(APPEND arglist SOURCE INC_PRIVATE LIB_PRIVATE DEFINE_PRIVATE C_OPTION_PRIVATE L_OPTION_PRIVATE)
+  cmake_parse_arguments("ARG" "TEST;QT;NOT_GROUP" "MODE;ADD_CURRENT_TO;RET_TARGET_NAME" "${arglist}" ${ARGN})
+  
+  # default
+  if("${ARG_ADD_CURRENT_TO}" STREQUAL "")
+    set(ARG_ADD_CURRENT_TO "PRIVATE")
+  endif()
+  
+  # [option]
+  # TEST
+  # QT
+  # NOT_GROUP
+  # [value]
+  # MODE: EXE / STATIC / SHARED / INTERFACE
+  # ADD_CURRENT_TO: PUBLIC / INTERFACE / PRIVATE (default) / NONE
+  # RET_TARGET_NAME
+  # [list] : public, interface, private
+  # SOURCE: dir(recursive), file, auto add currunt dir | target_sources
+  # INC: dir                                           | target_include_directories
+  # LIB: <lib-target>, *.lib                           | target_link_libraries
+  # DEFINE: #define ...                                | target_compile_definitions
+  # C_OPTION: compile options                          | target_compile_options
+  # L_OPTION: link options                             | target_link_options
+  
+  # test
+  if(ARG_TEST AND NOT "${Ubpa_BuildTest_${PROJECT_NAME}}")
+    return()
+  endif()
+  
+  if(ARG_QT)
+    Ubpa_QtBegin()
+  endif()
+  
+  # sources
+  if("${ARG_ADD_CURRENT_TO}" STREQUAL "PUBLIC")
+    list(APPEND ARG_SOURCE_PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+  elseif("${ARG_ADD_CURRENT_TO}" STREQUAL "INTERFACE")
+    list(APPEND ARG_SOURCE_INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+  elseif("${ARG_ADD_CURRENT_TO}" STREQUAL "PRIVATE")
+    list(APPEND ARG_SOURCE ${CMAKE_CURRENT_SOURCE_DIR})
+  elseif(NOT "${ARG_ADD_CURRENT_TO}" STREQUAL "NONE")
+    message(FATAL_ERROR "ADD_CURRENT_TO [${ARG_ADD_CURRENT_TO}] is not supported")
+  endif()
+  _Ubpa_ExpandSources(sources_public ARG_SOURCE_PUBLIC)
+  _Ubpa_ExpandSources(sources_interface ARG_SOURCE_INTERFACE)
+  _Ubpa_ExpandSources(sources_private ARG_SOURCE)
   
   # group
-  foreach(source ${sources})
-    get_filename_component(dir ${source} DIRECTORY)
-    if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${dir})
-      source_group("src" FILES ${source})
-    else()
-      file(RELATIVE_PATH rdir ${PROJECT_SOURCE_DIR} ${dir})
-      if(MSVC)
-        string(REPLACE "/" "\\" rdir_MSVC ${rdir})
-        set(rdir "${rdir_MSVC}")
+  if(NOT NOT_GROUP)
+    foreach(source ${sources})
+      get_filename_component(dir ${source} DIRECTORY)
+      if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${dir})
+        source_group("src" FILES ${source})
+      else()
+        file(RELATIVE_PATH rdir ${PROJECT_SOURCE_DIR} ${dir})
+        if(MSVC)
+          string(REPLACE "/" "\\" rdir_MSVC ${rdir})
+          set(rdir "${rdir_MSVC}")
+        endif()
+        source_group(${rdir} FILES ${source})
       endif()
-      source_group(${rdir} FILES ${source})
-    endif()
-  endforeach()
+    endforeach()
+  endif()
   
   # target folder
   file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/..")
   set(targetFolder "${PROJECT_NAME}/${targetRelPath}")
   
   Ubpa_GetTargetName(targetName ${CMAKE_CURRENT_SOURCE_DIR})
-  if(NOT  "${ARG_RET_TARGET_NAME}" STREQUAL "")
+  if(NOT "${ARG_RET_TARGET_NAME}" STREQUAL "")
     set(${ARG_RET_TARGET_NAME} ${targetName} PARENT_SCOPE)
   endif()
   
   # print
-  message(STATUS "----------")
   message(STATUS "- name: ${targetName}")
   message(STATUS "- folder : ${targetFolder}")
   message(STATUS "- mode: ${ARG_MODE}")
+  Ubpa_List_Print(STRS ${sources_private}
+    TITLE  "- sources (private):"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${sources_interface}
+    TITLE  "- sources interface:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${sources_public}
+    TITLE  "- sources public:"
+    PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_DEFINE}
-    TITLE  "- define:"
+    TITLE  "- define (public):"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_DEFINE_PRIVATE}
+    TITLE  "- define interface:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_DEFINE_INTERFACE}
     TITLE  "- define private:"
     PREFIX "  * ")
-  Ubpa_List_Print(STRS ${sources}
-    TITLE  "- sources:"
-    PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_LIB}
-    TITLE  "- lib:"
+    TITLE  "- lib (public):"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_LIB_INTERFACE}
     TITLE  "- lib interface:"
@@ -148,7 +183,7 @@ function(Ubpa_AddTarget)
     TITLE  "- lib private:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_INC}
-    TITLE  "- inc:"
+    TITLE  "- inc (public):"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_INC_INTERFACE}
     TITLE  "- inc interface:"
@@ -157,7 +192,7 @@ function(Ubpa_AddTarget)
     TITLE  "- inc private:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_DEFINE}
-    TITLE  "- define:"
+    TITLE  "- define (public):"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_DEFINE_INTERFACE}
     TITLE  "- define interface:"
@@ -166,22 +201,22 @@ function(Ubpa_AddTarget)
     TITLE  "- define private:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_C_OPTION}
-    TITLE  "- compile opt:"
+    TITLE  "- compile option (public):"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_C_OPTION_INTERFACE}
-    TITLE  "- compile opt interface:"
+    TITLE  "- compile option interface:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_C_OPTION_PRIVATE}
-    TITLE  "- compile opt private:"
+    TITLE  "- compile option private:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_L_OPTION}
-    TITLE  "- link opt:"
+    TITLE  "- link option (public):"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_L_OPTION_INTERFACE}
-    TITLE  "- link opt interface:"
+    TITLE  "- link option interface:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_L_OPTION_PRIVATE}
-    TITLE  "- link opt private:"
+    TITLE  "- link option private:"
     PREFIX "  * ")
   
   Ubpa_PackageName(package_name)
@@ -196,35 +231,39 @@ function(Ubpa_AddTarget)
     set_target_properties(${targetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
   elseif("${ARG_MODE}" STREQUAL "STATIC")
     add_library(${targetName} STATIC)
-   add_library("Ubpa::${targetName}" ALIAS ${targetName})
+    add_library("Ubpa::${targetName}" ALIAS ${targetName})
   elseif("${ARG_MODE}" STREQUAL "SHARED")
     add_library(${targetName} SHARED)
-   add_library("Ubpa::${targetName}" ALIAS ${targetName})
-  elseif("${ARG_MODE}" STREQUAL "HEAD")
+    add_library("Ubpa::${targetName}" ALIAS ${targetName})
+  elseif("${ARG_MODE}" STREQUAL "INTERFACE")
     add_library(${targetName} INTERFACE)
-   add_library("Ubpa::${targetName}" ALIAS ${targetName})
+    add_library("Ubpa::${targetName}" ALIAS ${targetName})
   else()
     message(FATAL_ERROR "mode [${ARG_MODE}] is not supported")
     return()
   endif()
   
   # folder
-  if(NOT ${ARG_MODE} STREQUAL "HEAD")
+  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
     set_target_properties(${targetName} PROPERTIES FOLDER ${targetFolder})
   endif()
   
-  # target source
-  if(NOT ${ARG_MODE} STREQUAL "HEAD")
-    target_sources(${targetName} PRIVATE ${sources})
+  # target sources
+  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
+    target_sources(${targetName}
+	  PUBLIC ${sources_public}
+	  INTERFACE ${sources_interface}
+	  PRIVATE ${sources_private}
+	)
   else()
-    target_sources(${targetName} INTERFACE ${sources})
+    target_sources(${targetName} INTERFACE ${sources_public} ${sources_interface} ${sources_private})
   endif()
   
   # target define
-  if(NOT ${ARG_MODE} STREQUAL "HEAD")
+  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
     target_compile_definitions(${targetName}
       PUBLIC ${ARG_DEFINE}
-     INTERFACE ${ARG_DEFINE_INTERFACE}
+      INTERFACE ${ARG_DEFINE_INTERFACE}
       PRIVATE ${ARG_DEFINE_PRIVATE}
     )
   else()
@@ -232,10 +271,10 @@ function(Ubpa_AddTarget)
   endif()
   
   # target lib
-  if(NOT ${ARG_MODE} STREQUAL "HEAD")
+  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
     target_link_libraries(${targetName}
       PUBLIC ${ARG_LIB}
-     INTERFACE ${ARG_LIB_INTERFACE}
+      INTERFACE ${ARG_LIB_INTERFACE}
       PRIVATE ${ARG_LIB_PRIVATE}
     )
   else()
@@ -244,7 +283,7 @@ function(Ubpa_AddTarget)
   
   # target inc
   foreach(inc ${ARG_INC})
-    if(NOT ${ARG_MODE} STREQUAL "HEAD")
+    if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
       target_include_directories(${targetName} PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${inc}>
         $<INSTALL_INTERFACE:${package_name}/${inc}>
@@ -257,7 +296,7 @@ function(Ubpa_AddTarget)
     endif()
   endforeach()
   foreach(inc ${ARG_INC_PRIVATE})
-    if(NOT ${ARG_MODE} STREQUAL "HEAD")
+    if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
       target_include_directories(${targetName} PRIVATE
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${inc}>
         $<INSTALL_INTERFACE:${package_name}/${inc}>
@@ -277,7 +316,7 @@ function(Ubpa_AddTarget)
   endforeach()
   
   # target compile option
-  if(NOT ${ARG_MODE} STREQUAL "HEAD")
+  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
     target_compile_options(${targetName}
       PUBLIC ${ARG_C_OPTION}
       INTERFACE ${ARG_C_OPTION_INTERFACE}
@@ -288,7 +327,7 @@ function(Ubpa_AddTarget)
   endif()
   
   # target link option
-  if(NOT ${ARG_MODE} STREQUAL "HEAD")
+  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
     target_link_options(${targetName}
       PUBLIC ${ARG_L_OPTION}
       INTERFACE ${ARG_L_OPTION_INTERFACE}
@@ -307,7 +346,9 @@ function(Ubpa_AddTarget)
     )
   endif()
   
-  if(QT)
+  if(ARG_QT)
     Ubpa_QtEnd()
   endif()
+  
+  message(STATUS "----------")
 endfunction()
