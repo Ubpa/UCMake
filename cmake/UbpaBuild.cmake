@@ -156,18 +156,22 @@ function(Ubpa_AddTarget)
   
   # group
   if(NOT NOT_GROUP)
-    foreach(source ${sources})
-      get_filename_component(dir ${source} DIRECTORY)
-      if(${CMAKE_CURRENT_SOURCE_DIR} STREQUAL ${dir})
-        source_group("src" FILES ${source})
+    set(allsources ${sources_public} ${sources_interface} ${sources_private})
+    foreach(src ${allsources})
+      get_filename_component(dir ${src} DIRECTORY)
+      string(FIND ${dir} ${CMAKE_CURRENT_SOURCE_DIR} idx)
+      if(NOT idx EQUAL -1)
+        set(base_dir "${CMAKE_CURRENT_SOURCE_DIR}/..")
+        file(RELATIVE_PATH rdir "${CMAKE_CURRENT_SOURCE_DIR}/.." ${dir})
       else()
-        file(RELATIVE_PATH rdir ${PROJECT_SOURCE_DIR} ${dir})
-        if(MSVC)
-          string(REPLACE "/" "\\" rdir_MSVC ${rdir})
-          set(rdir "${rdir_MSVC}")
-        endif()
-        source_group(${rdir} FILES ${source})
+        set(base_dir ${PROJECT_SOURCE_DIR})
       endif()
+      file(RELATIVE_PATH rdir ${base_dir} ${dir})
+      if(MSVC)
+        string(REPLACE "/" "\\" rdir_MSVC ${rdir})
+        set(rdir "${rdir_MSVC}")
+      endif()
+      source_group(${rdir} FILES ${src})
     endforeach()
   endif()
   
@@ -280,16 +284,23 @@ function(Ubpa_AddTarget)
   # target sources
   foreach(src ${sources_public})
     get_filename_component(abs_src ${src} ABSOLUTE)
-    string(REPLACE "${PROJECT_SOURCE_DIR}/" "" rel_src ${abs_src})
+    file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
     target_sources(${targetName} PUBLIC
       $<BUILD_INTERFACE:${abs_src}>
       $<INSTALL_INTERFACE:${package_name}/${rel_src}>
     )
   endforeach()
-  target_sources(${targetName} PRIVATE ${sources_private})
+  foreach(src ${sources_private})
+    get_filename_component(abs_src ${src} ABSOLUTE)
+    file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
+    target_sources(${targetName} PRIVATE
+      $<BUILD_INTERFACE:${abs_src}>
+      $<INSTALL_INTERFACE:${package_name}/${rel_src}>
+    )
+  endforeach()
   foreach(src ${sources_interface})
     get_filename_component(abs_src ${src} ABSOLUTE)
-    string(REPLACE "${PROJECT_SOURCE_DIR}/" "" rel_src ${abs_src})
+    file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
     target_sources(${targetName} INTERFACE
       $<BUILD_INTERFACE:${abs_src}>
       $<INSTALL_INTERFACE:${package_name}/${rel_src}>
@@ -313,16 +324,23 @@ function(Ubpa_AddTarget)
   # target inc
   foreach(inc ${ARG_INC})
     get_filename_component(abs_inc ${inc} ABSOLUTE)
-    string(REPLACE "${PROJECT_SOURCE_DIR}/" "" rel_inc ${abs_inc})
+    file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${abs_inc})
     target_include_directories(${targetName} PUBLIC
       $<BUILD_INTERFACE:${abs_inc}>
       $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
     )
   endforeach()
-  target_include_directories(${targetName} PRIVATE ${ARG_INC_PRIVATE})
+  foreach(inc ${ARG_INC_PRIVATE})
+    get_filename_component(abs_inc ${inc} ABSOLUTE)
+    file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${abs_inc})
+    target_include_directories(${targetName} PRIVATE
+      $<BUILD_INTERFACE:${abs_inc}>
+      $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
+    )
+  endforeach()
   foreach(inc ${ARG_INC_INTERFACE})
     get_filename_component(abs_inc ${inc} ABSOLUTE)
-    string(REPLACE "${PROJECT_SOURCE_DIR}/" "" rel_inc ${abs_inc})
+    file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${inc})
     target_include_directories(${targetName} INTERFACE
       $<BUILD_INTERFACE:${abs_inc}>
       $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
