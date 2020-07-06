@@ -27,6 +27,9 @@ function(_Ubpa_ExpandSources rst _sources)
       file(GLOB_RECURSE itemSrcs
         # cmake
         ${item}/*.cmake
+
+        # msvc
+        ${item}/*.natvis
         
         # INTERFACEer files
         ${item}/*.h
@@ -84,6 +87,32 @@ function(Ubpa_AddTarget)
   # default
   if("${ARG_ADD_CURRENT_TO}" STREQUAL "")
     set(ARG_ADD_CURRENT_TO "PRIVATE")
+  endif()
+
+  # public, private -> interface
+  if("${ARG_MODE}" STREQUAL "INTERFACE")
+    list(APPEND ARG_SOURCE_INTERFACE   ${ARG_SOURCE_PUBLIC} ${ARG_SOURCE}          )
+    list(APPEND ARG_INC_INTERFACE      ${ARG_INC}           ${ARG_INC_PRIVATE}     )
+    list(APPEND ARG_LIB_INTERFACE      ${ARG_LIB}           ${ARG_LIB_PRIVATE}     )
+    list(APPEND ARG_DEFINE_INTERFACE   ${ARG_DEFINE}        ${ARG_DEFINE_PRIVATE}  )
+    list(APPEND ARG_C_OPTION_INTERFACE ${ARG_C_OPTION}      ${ARG_C_OPTION_PRIVATE})
+    list(APPEND ARG_L_OPTION_INTERFACE ${ARG_L_OPTION}      ${ARG_L_OPTION_PRIVATE})
+    set(ARG_SOURCE_PUBLIC    "")
+    set(ARG_SOURCE           "")
+    set(ARG_INC              "")
+    set(ARG_INC_PRIVATE      "")
+    set(ARG_LIB              "")
+    set(ARG_LIB_PRIVATE      "")
+    set(ARG_DEFINE           "")
+    set(ARG_DEFINE_PRIVATE   "")
+    set(ARG_C_OPTION         "")
+    set(ARG_C_OPTION_PRIVATE "")
+    set(ARG_L_OPTION         "")
+    set(ARG_L_OPTION_PRIVATE "")
+
+    if(NOT "${ARG_ADD_CURRENT_TO}" STREQUAL "NONE")
+      set(ARG_ADD_CURRENT_TO "INTERFACE")
+    endif()
   endif()
   
   # [option]
@@ -249,93 +278,70 @@ function(Ubpa_AddTarget)
   endif()
   
   # target sources
-  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
-    target_sources(${targetName}
-	  PUBLIC ${sources_public}
-	  INTERFACE ${sources_interface}
-	  PRIVATE ${sources_private}
-	)
-  else()
-    target_sources(${targetName} INTERFACE ${sources_public} ${sources_interface} ${sources_private})
-  endif()
+  foreach(src ${sources_public})
+    get_filename_component(abs_src ${src} ABSOLUTE)
+    string(REPLACE "${PROJECT_SOURCE_DIR}/" "" rel_src ${abs_src})
+    target_sources(${targetName} PUBLIC
+      $<BUILD_INTERFACE:${abs_src}>
+      $<INSTALL_INTERFACE:${package_name}/${rel_src}>
+    )
+  endforeach()
+  target_sources(${targetName} PRIVATE ${sources_private})
+  foreach(src ${sources_interface})
+    get_filename_component(abs_src ${src} ABSOLUTE)
+    string(REPLACE "${PROJECT_SOURCE_DIR}/" "" rel_src ${abs_src})
+    target_sources(${targetName} INTERFACE
+      $<BUILD_INTERFACE:${abs_src}>
+      $<INSTALL_INTERFACE:${package_name}/${rel_src}>
+    )
+  endforeach()
   
   # target define
-  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
-    target_compile_definitions(${targetName}
-      PUBLIC ${ARG_DEFINE}
-      INTERFACE ${ARG_DEFINE_INTERFACE}
-      PRIVATE ${ARG_DEFINE_PRIVATE}
-    )
-  else()
-    target_compile_definitions(${targetName} INTERFACE ${ARG_DEFINE} ${ARG_DEFINE_PRIVATE} ${ARG_DEFINE_INTERFACE})
-  endif()
+  target_compile_definitions(${targetName}
+    PUBLIC ${ARG_DEFINE}
+    INTERFACE ${ARG_DEFINE_INTERFACE}
+    PRIVATE ${ARG_DEFINE_PRIVATE}
+  )
   
   # target lib
-  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
-    target_link_libraries(${targetName}
-      PUBLIC ${ARG_LIB}
-      INTERFACE ${ARG_LIB_INTERFACE}
-      PRIVATE ${ARG_LIB_PRIVATE}
-    )
-  else()
-    target_link_libraries(${targetName} INTERFACE ${ARG_LIB} ${ARG_LIB_PRIVATE} ${ARG_LIB_INTERFACE})
-  endif()
+  target_link_libraries(${targetName}
+    PUBLIC ${ARG_LIB}
+    INTERFACE ${ARG_LIB_INTERFACE}
+    PRIVATE ${ARG_LIB_PRIVATE}
+  )
   
   # target inc
   foreach(inc ${ARG_INC})
-    if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
-      target_include_directories(${targetName} PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${inc}>
-        $<INSTALL_INTERFACE:${package_name}/${inc}>
-      )
-    else()
-      target_include_directories(${targetName} INTERFACE
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${inc}>
-        $<INSTALL_INTERFACE:${package_name}/${inc}>
-      )
-    endif()
+    get_filename_component(abs_inc ${inc} ABSOLUTE)
+    string(REPLACE "${PROJECT_SOURCE_DIR}/" "" rel_inc ${abs_inc})
+    target_include_directories(${targetName} PUBLIC
+      $<BUILD_INTERFACE:${abs_inc}>
+      $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
+    )
   endforeach()
-  foreach(inc ${ARG_INC_PRIVATE})
-    if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
-      target_include_directories(${targetName} PRIVATE
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${inc}>
-        $<INSTALL_INTERFACE:${package_name}/${inc}>
-      )
-    else()
-      target_include_directories(${targetName} INTERFACE
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${inc}>
-        $<INSTALL_INTERFACE:${package_name}/${inc}>
-      )
-    endif()
-  endforeach()
+  target_include_directories(${targetName} PRIVATE ${ARG_INC_PRIVATE})
   foreach(inc ${ARG_INC_INTERFACE})
+    get_filename_component(abs_inc ${inc} ABSOLUTE)
+    string(REPLACE "${PROJECT_SOURCE_DIR}/" "" rel_inc ${abs_inc})
     target_include_directories(${targetName} INTERFACE
-      $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/${inc}>
-      $<INSTALL_INTERFACE:${package_name}/${inc}>
+      $<BUILD_INTERFACE:${abs_inc}>
+      $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
     )
   endforeach()
   
   # target compile option
-  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
-    target_compile_options(${targetName}
-      PUBLIC ${ARG_C_OPTION}
-      INTERFACE ${ARG_C_OPTION_INTERFACE}
-      PRIVATE ${ARG_C_OPTION_PRIVATE}
-    )
-  else()
-    target_compile_options(${targetName} INTERFACE ${ARG_C_OPTION} ${ARG_C_OPTION_PRIVATE} ${ARG_C_OPTION_INTERFACE})
-  endif()
+  target_compile_options(${targetName}
+    PUBLIC ${ARG_C_OPTION}
+    INTERFACE ${ARG_C_OPTION_INTERFACE}
+    PRIVATE ${ARG_C_OPTION_PRIVATE}
+  )
   
   # target link option
-  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
-    target_link_options(${targetName}
-      PUBLIC ${ARG_L_OPTION}
-      INTERFACE ${ARG_L_OPTION_INTERFACE}
-      PRIVATE ${ARG_L_OPTION_PRIVATE}
-    )
-  else()
-    target_compile_options(${targetName} INTERFACE ${ARG_L_OPTION} ${ARG_L_OPTION_PRIVATE} ${ARG_L_OPTION_INTERFACE})
-  endif()
+  target_link_options(${targetName}
+    PUBLIC ${ARG_L_OPTION}
+    INTERFACE ${ARG_L_OPTION_INTERFACE}
+    PRIVATE ${ARG_L_OPTION_PRIVATE}
+  )
   
   if(NOT ARG_TEST)
     install(TARGETS ${targetName}
