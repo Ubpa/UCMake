@@ -1,0 +1,33 @@
+cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+project (Test VERSION 1.2.3.4)
+
+set(v0 ON)
+
+if(v0)
+  message(STATUS "v0 true")
+else()
+  message(FATAL_ERROR "error")
+endif()
+
+set(idx -1)
+if(idx EQUAL -1)
+  message(STATUS "idx == -1 true")
+else()
+  message(FATAL_ERROR "error")
+endif()
+
+set (A 0.1.2)
+set (B 0.1.2)
+if(A EQUAL B)
+  message(STATUS "A == B true")
+else()
+  message(FATAL_ERROR "error")
+endif()
+
+set (A_B TRUE)
+set (pB B)
+if(A_${pB})
+  message(STATUS "A_\${pB} true")
+else()
+  message(FATAL_ERROR "error")
+endif()
