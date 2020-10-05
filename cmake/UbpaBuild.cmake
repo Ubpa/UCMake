@@ -82,7 +82,13 @@ function(Ubpa_AddTarget)
   list(APPEND arglist SOURCE_INTERFACE INC_INTERFACE LIB_INTERFACE DEFINE_INTERFACE C_OPTION_INTERFACE L_OPTION_INTERFACE)
   # private
   list(APPEND arglist SOURCE INC_PRIVATE LIB_PRIVATE DEFINE_PRIVATE C_OPTION_PRIVATE L_OPTION_PRIVATE)
-  cmake_parse_arguments("ARG" "TEST;QT;NOT_GROUP" "MODE;ADD_CURRENT_TO;RET_TARGET_NAME" "${arglist}" ${ARGN})
+  cmake_parse_arguments(
+    "ARG"
+    "TEST;QT;NOT_GROUP"
+    "MODE;ADD_CURRENT_TO;OUTPUT_NAME;RET_TARGET_NAME"
+    "${arglist}"
+    ${ARGN}
+  )
   
   # default
   if("${ARG_ADD_CURRENT_TO}" STREQUAL "")
@@ -361,6 +367,10 @@ function(Ubpa_AddTarget)
     PRIVATE ${ARG_L_OPTION_PRIVATE}
   )
   
+  if(NOT "${ARG_OUTPUT_NAME}" STREQUAL "")
+    set_target_properties(${targetName} PROPERTIES OUTPUT_NAME "${ARG_OUTPUT_NAME}" CLEAN_DIRECT_OUTPUT 1)
+  endif()
+
   if(NOT ARG_TEST)
     install(TARGETS ${targetName}
       EXPORT "${PROJECT_NAME}Targets"
