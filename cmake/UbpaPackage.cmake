@@ -84,7 +84,7 @@ macro(Ubpa_AddDep name version)
 endmacro()
 
 macro(Ubpa_Export)
-  cmake_parse_arguments("ARG" "TARGET" "" "DIRECTORIES" ${ARGN})
+  cmake_parse_arguments("ARG" "TARGET;CPM" "" "DIRECTORIES" ${ARGN})
   
   Ubpa_PackageName(package_name)
   message(STATUS "export ${package_name}")
@@ -93,7 +93,7 @@ macro(Ubpa_Export)
 get_filename_component(include_dir \"\${CMAKE_CURRENT_LIST_DIR}/../include\" ABSOLUTE)
 include_directories(\"\${include_dir}\")\n")
   
-  if(Ubpa_${PROJECT_NAME}_have_dependencies)
+  if(ARG_CPM OR Ubpa_${PROJECT_NAME}_have_dependencies)
     set(UBPA_PACKAGE_INIT "${UBPA_PACKAGE_INIT}
 if(NOT FetchContent_FOUND)
   include(FetchContent)
@@ -102,12 +102,12 @@ if(NOT UCMake_FOUND)
   message(STATUS \"find package: UCMake ${UCMake_VERSION}\")
   find_package(UCMake ${UCMake_VERSION} EXACT QUIET)
   if(NOT UCMake_FOUND)
-    set(_Ubpa_${PROJECT_NAME}_address \"https://github.com/Ubpa/UCMake\")
+    set(_Ubpa_UCMake_address \"https://github.com/Ubpa/UCMake\")
     message(STATUS \"UCMake ${UCMake_VERSION} not found\")
-    message(STATUS \"fetch: \${_Ubpa_${PROJECT_NAME}_address} with tag \${UCMake_VERSION}\")
+    message(STATUS \"fetch: \${_Ubpa_UCMake_address} with tag \${UCMake_VERSION}\")
     FetchContent_Declare(
       UCMake
-      GIT_REPOSITORY \${_Ubpa_${PROJECT_NAME}_address}
+      GIT_REPOSITORY \${_Ubpa_UCMake_address}
       GIT_TAG ${UCMake_VERSION}
     )
     FetchContent_MakeAvailable(UCMake)
@@ -116,16 +116,19 @@ if(NOT UCMake_FOUND)
 endif()
 "
     )
-
-    message(STATUS "[Dependencies]")
+    
     list(LENGTH Ubpa_${PROJECT_NAME}_dep_name_list _dep_num)
-    math(EXPR _stop "${_dep_num}-1")
-    foreach(index RANGE ${_stop})
-      list(GET Ubpa_${PROJECT_NAME}_dep_name_list ${index} dep_name)
-      list(GET Ubpa_${PROJECT_NAME}_dep_version_list ${index} dep_version)
-      message(STATUS "- ${dep_name} ${dep_version}")
-      string(APPEND UBPA_PACKAGE_INIT "Ubpa_AddDepPro(${PROJECT_NAME} ${dep_name} ${dep_version})\n")
-    endforeach()
+    if(_dep_num GREATER 0)
+      message(STATUS "[Dependencies]")
+      list(LENGTH Ubpa_${PROJECT_NAME}_dep_name_list _dep_num)
+      math(EXPR _stop "${_dep_num}-1")
+      foreach(index RANGE ${_stop})
+        list(GET Ubpa_${PROJECT_NAME}_dep_name_list ${index} dep_name)
+        list(GET Ubpa_${PROJECT_NAME}_dep_version_list ${index} dep_version)
+        message(STATUS "- ${dep_name} ${dep_version}")
+        string(APPEND UBPA_PACKAGE_INIT "Ubpa_AddDepPro(${PROJECT_NAME} ${dep_name} ${dep_version})\n")
+      endforeach()
+    endif()
   endif()
   
   if(ARG_TARGET)
