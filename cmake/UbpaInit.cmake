@@ -15,12 +15,12 @@ include("${CMAKE_CURRENT_LIST_DIR}/UbpaGit.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaPackage.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaQt.cmake")
 
-Ubpa_DownloadFile(
-  https://cdn.jsdelivr.net/gh/Ubpa/UData@master/UCMake/CPM/CPM_3b40429.cmake
-  "${CMAKE_CURRENT_LIST_DIR}/CPM.cmake"
-  SHA256 438E319D455FD96E18F6CAD9DF596FCD5C9CA3590B1B2EDFA01AF7809CD7BEC7
-)
-set(CPM_USE_LOCAL_PACKAGES TRUE CACHE BOOL "" FORCE)
+#Ubpa_DownloadFile(
+#  https://cdn.jsdelivr.net/gh/Ubpa/UData@master/UCMake/CPM/CPM_3b40429.cmake
+#  "${CMAKE_CURRENT_LIST_DIR}/CPM.cmake"
+#  SHA256 438E319D455FD96E18F6CAD9DF596FCD5C9CA3590B1B2EDFA01AF7809CD7BEC7
+#)
+#set(CPM_USE_LOCAL_PACKAGES TRUE CACHE BOOL "" FORCE)
 include("${CMAKE_CURRENT_LIST_DIR}/CPM.cmake")
 
 # ---------------------------------------------------------
