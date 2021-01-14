@@ -274,3 +274,5 @@ Ubpa_config*.h
 lib/
 bin/
 build/
+vs_build/
+.vscode/

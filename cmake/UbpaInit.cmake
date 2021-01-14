@@ -26,9 +26,27 @@ include("${CMAKE_CURRENT_LIST_DIR}/CPM.cmake")
 # ---------------------------------------------------------
 
 macro(Ubpa_InitProject)
+  cmake_parse_arguments(
+    "ARG" # prefix
+    "" #<options> # TRUE / FALSE
+    "CXX_STANDARD" # <one_value_keywords>
+    "" #<multi_value_keywords> # list
+    ${ARGN}
+  )
+  # 结果为 ARG_*
+  # - ARG_<option>
+  # - ARG_<one_value_keyword>
+  # - ARG_<multi_value_keyword>
+
   set(CMAKE_DEBUG_POSTFIX d)
   
-  set(CMAKE_CXX_STANDARD 17)
+  if("${ARG_CXX_STANDARD}" STREQUAL "")
+    set(ARG_CXX_STANDARD 20)
+  endif()
+  
+  message(STATUS "CXX_STANDARD: ${ARG_CXX_STANDARD}")
+
+  set(CMAKE_CXX_STANDARD ${ARG_CXX_STANDARD})
   set(CMAKE_CXX_STANDARD_REQUIRED True)
   
   if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)

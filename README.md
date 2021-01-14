@@ -494,3 +494,8 @@ target_link_libraries(<target>
           DESTINATION “${PROJECT_NAME}/cmake”
   )
   ```
+
+## 配合 VS
+
+- cmake -G "Visual Studio 16 2019" -A x64 -S ./ -B ./build
+
