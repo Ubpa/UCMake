@@ -26,17 +26,6 @@ include("${CMAKE_CURRENT_LIST_DIR}/CPM.cmake")
 # ---------------------------------------------------------
 
 macro(Ubpa_InitProject)
-  cmake_parse_arguments(
-    "ARG" # prefix
-    "" #<options> # TRUE / FALSE
-    "CXX_STANDARD" # <one_value_keywords>
-    "" #<multi_value_keywords> # list
-    ${ARGN}
-  )
-  # 结果为 ARG_*
-  # - ARG_<option>
-  # - ARG_<one_value_keyword>
-  # - ARG_<multi_value_keyword>
 
   set(CMAKE_DEBUG_POSTFIX d)
   
@@ -44,6 +33,29 @@ macro(Ubpa_InitProject)
     set(ARG_CXX_STANDARD 20)
   endif()
   
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  # using Clang
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "11")
+      message(FATAL_ERROR "clang (< 11) not support concept")
+      return()
+    endif()
+    message(STATUS "Compiler: Clang ${CMAKE_CXX_COMPILER_VERSION}")
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "10")
+      message(FATAL_ERROR "gcc (< 10) not support concept")
+      return()
+    endif()
+    message(STATUS "Compiler: GCC ${CMAKE_CXX_COMPILER_VERSION}")
+  # using GCC
+  elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  # using Visual Studio C++
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS "19.26")
+      message(FATAL_ERROR "MSVC (< 1926 / 2019 16.6) not support concept")
+      return()
+    endif()
+    message(STATUS "Compiler: MSVC ${CMAKE_CXX_COMPILER_VERSION}")
+  endif()
+
   message(STATUS "CXX_STANDARD: ${ARG_CXX_STANDARD}")
 
   set(CMAKE_CXX_STANDARD ${ARG_CXX_STANDARD})
