@@ -85,7 +85,7 @@ function(Ubpa_AddTarget)
   cmake_parse_arguments(
     "ARG"
     "TEST;QT;NOT_GROUP"
-    "MODE;ADD_CURRENT_TO;OUTPUT_NAME;RET_TARGET_NAME"
+    "MODE;ADD_CURRENT_TO;OUTPUT_NAME;RET_TARGET_NAME;CXX_STANDARD"
     "${arglist}"
     ${ARGN}
   )
@@ -129,6 +129,7 @@ function(Ubpa_AddTarget)
   # MODE: EXE / STATIC / SHARED / INTERFACE
   # ADD_CURRENT_TO: PUBLIC / INTERFACE / PRIVATE (default) / NONE
   # RET_TARGET_NAME
+  # CXX_STANDARD: 11/14/17/20, default is global CXX_STANDARD (20)
   # [list] : public, interface, private
   # SOURCE: dir(recursive), file, auto add currunt dir | target_sources
   # INC: dir                                           | target_include_directories
@@ -282,6 +283,11 @@ function(Ubpa_AddTarget)
     return()
   endif()
   
+  if(NOT "${ARG_CXX_STANDARD}" STREQUAL "")
+    set_property(TARGET ${targetName} PROPERTY CXX_STANDARD ${ARG_CXX_STANDARD})
+    message(STATUS "- CXX_STANDARD : ${ARG_CXX_STANDARD}")
+  endif()
+
   # folder
   if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
     set_target_properties(${targetName} PROPERTIES FOLDER ${targetFolder})
