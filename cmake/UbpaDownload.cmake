@@ -16,7 +16,7 @@ endfunction()
 
 function(Ubpa_DownloadFile url filename hash_type hash)
   Ubpa_IsNeedDownload(need ${filename} ${hash_type} ${hash})
-  if(${need} STREQUAL "FALSE")
+  if(NOT need)
     message(STATUS "Found File: ${filename}")
     return()
   endif()
@@ -32,6 +32,11 @@ endfunction()
 
 function(Ubpa_DownloadZip url zipname hash_type hash)
   set(filename "${CMAKE_BINARY_DIR}/${PROJECT_NAME}/${zipname}")
+  Ubpa_IsNeedDownload(need ${filename} ${hash_type} ${hash})
+  if(NOT need)
+    message(STATUS "Found File: ${filename}")
+    return()
+  endif()
   Ubpa_DownloadFile(${url} ${filename} ${hash_type} ${hash})
   # this is OS-agnostic
   execute_process(COMMAND ${CMAKE_COMMAND} -E tar -xf ${filename}
@@ -40,6 +45,10 @@ endfunction()
 
 function(Ubpa_DownloadZip_Pro url zipname dir hash_type hash)
   set(filename "${CMAKE_BINARY_DIR}/${PROJECT_NAME}/${zipname}")
+  if(NOT need)
+    message(STATUS "Found File: ${filename}")
+    return()
+  endif()
   Ubpa_DownloadFile(${url} ${filename} ${hash_type} ${hash})
   # this is OS-agnostic
   file(MAKE_DIRECTORY ${dir})
