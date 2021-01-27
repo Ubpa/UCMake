@@ -77,15 +77,15 @@ function(Ubpa_AddTarget)
 
   set(arglist "")
   # public
-  list(APPEND arglist SOURCE_PUBLIC INC LIB DEFINE C_OPTION L_OPTION)
+  list(APPEND arglist SOURCE_PUBLIC INC LIB DEFINE C_OPTION L_OPTION PCH_PUBLIC)
   # interface
-  list(APPEND arglist SOURCE_INTERFACE INC_INTERFACE LIB_INTERFACE DEFINE_INTERFACE C_OPTION_INTERFACE L_OPTION_INTERFACE)
+  list(APPEND arglist SOURCE_INTERFACE INC_INTERFACE LIB_INTERFACE DEFINE_INTERFACE C_OPTION_INTERFACE L_OPTION_INTERFACE PCH_INTERFACE)
   # private
-  list(APPEND arglist SOURCE INC_PRIVATE LIB_PRIVATE DEFINE_PRIVATE C_OPTION_PRIVATE L_OPTION_PRIVATE)
+  list(APPEND arglist SOURCE INC_PRIVATE LIB_PRIVATE DEFINE_PRIVATE C_OPTION_PRIVATE L_OPTION_PRIVATE PCH)
   cmake_parse_arguments(
     "ARG"
     "TEST;QT;NOT_GROUP"
-    "MODE;ADD_CURRENT_TO;OUTPUT_NAME;RET_TARGET_NAME;CXX_STANDARD"
+    "MODE;ADD_CURRENT_TO;OUTPUT_NAME;RET_TARGET_NAME;CXX_STANDARD;PCH_REUSE_FROM"
     "${arglist}"
     ${ARGN}
   )
@@ -103,6 +103,7 @@ function(Ubpa_AddTarget)
     list(APPEND ARG_DEFINE_INTERFACE   ${ARG_DEFINE}        ${ARG_DEFINE_PRIVATE}  )
     list(APPEND ARG_C_OPTION_INTERFACE ${ARG_C_OPTION}      ${ARG_C_OPTION_PRIVATE})
     list(APPEND ARG_L_OPTION_INTERFACE ${ARG_L_OPTION}      ${ARG_L_OPTION_PRIVATE})
+    list(APPEND ARG_PCH_INTERFACE      ${ARG_PCH_PUBLIC}    ${ARG_PCH}             )
     set(ARG_SOURCE_PUBLIC    "")
     set(ARG_SOURCE           "")
     set(ARG_INC              "")
@@ -115,6 +116,8 @@ function(Ubpa_AddTarget)
     set(ARG_C_OPTION_PRIVATE "")
     set(ARG_L_OPTION         "")
     set(ARG_L_OPTION_PRIVATE "")
+    set(ARG_PCH_PUBLIC       "")
+    set(ARG_PCH              "")
 
     if(NOT "${ARG_ADD_CURRENT_TO}" STREQUAL "NONE")
       set(ARG_ADD_CURRENT_TO "INTERFACE")
@@ -130,6 +133,7 @@ function(Ubpa_AddTarget)
   # ADD_CURRENT_TO: PUBLIC / INTERFACE / PRIVATE (default) / NONE
   # RET_TARGET_NAME
   # CXX_STANDARD: 11/14/17/20, default is global CXX_STANDARD (20)
+  # PCH_REUSE_FROM
   # [list] : public, interface, private
   # SOURCE: dir(recursive), file, auto add currunt dir | target_sources
   # INC: dir                                           | target_include_directories
@@ -137,6 +141,7 @@ function(Ubpa_AddTarget)
   # DEFINE: #define ...                                | target_compile_definitions
   # C_OPTION: compile options                          | target_compile_options
   # L_OPTION: link options                             | target_link_options
+  # PCH: precompile headers                            | target_precompile_headers
   
   # test
   if(ARG_TEST AND NOT "${Ubpa_BuildTest_${PROJECT_NAME}}")
@@ -373,8 +378,19 @@ function(Ubpa_AddTarget)
     PRIVATE ${ARG_L_OPTION_PRIVATE}
   )
   
+  # target pch
+  target_precompile_headers(${targetName}
+    PUBLIC ${ARG_PCH_PUBLIC}
+    INTERFACE ${ARG_PCH_INTERFACE}
+    PRIVATE ${ARG_PCH}
+  )
+  
   if(NOT "${ARG_OUTPUT_NAME}" STREQUAL "")
     set_target_properties(${targetName} PROPERTIES OUTPUT_NAME "${ARG_OUTPUT_NAME}" CLEAN_DIRECT_OUTPUT 1)
+  endif()
+
+  if(NOT "${ARG_PCH_REUSE_FROM}" STREQUAL "")
+    target_precompile_headers(${targetName} REUSE_FROM "${ARG_PCH_REUSE_FROM}")
   endif()
 
   if(NOT ARG_TEST)
