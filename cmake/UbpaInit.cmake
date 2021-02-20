@@ -51,6 +51,8 @@ macro(Ubpa_InitProject)
       message(FATAL_ERROR "MSVC (< 1926 / 2019 16.6) not support concept")
       return()
     endif()
+  else()
+    message(WARNING "Unknown CMAKE_CXX_COMPILER_ID : ${CMAKE_CXX_COMPILER_ID}")
   endif()
   
   message(STATUS "CXX_STANDARD: ${CMAKE_CXX_STANDARD}")
