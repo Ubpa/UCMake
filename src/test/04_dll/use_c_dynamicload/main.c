@@ -24,7 +24,7 @@ int main() {
 	}
 	mul = (Func)GetProcAddress(dll, "mul");
 #else
-	const char soname[] = "UCMake_test_04_dll_gen" UCMAKE_CONFIG_POSTFIX ".so";
+	const char soname[] = "./" "lib" "UCMake_test_04_dll_gen" UCMAKE_CONFIG_POSTFIX ".so";
 	void* so = dlopen(soname, RTLD_LAZY);
 	if (!so) {
 		printf("load %s failed.", soname);

@@ -15,4 +15,4 @@ Ubpa_AddTarget(
     ${libs}
 )
 
-add_dependencies(${tname} UCMake_test_04_dll_gen)
+add_dependencies(${tname} UCMake_test_05_dll_class_virtual_gen)
