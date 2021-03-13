@@ -9,16 +9,17 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "../MyClass.h"
 
-typedef size_t(*F_sizof_MyClass)();
+typedef size_t(*F_sizeof_MyClass)();
 typedef MyClassHandle(*F_MyClass_Construct)(void*);
 typedef void(*F_MyClass_Destruct)(MyClassHandle);
 typedef void(*F_MyClass_SayHello)(MyClassConstHandle);
 
 int main() {
-	F_sizof_MyClass fp_sizeof_MyClass;
+	F_sizeof_MyClass fp_sizeof_MyClass;
 	F_MyClass_Construct fp_MyClass_Construct;
 	F_MyClass_Destruct fp_MyClass_Destruct;
 	F_MyClass_SayHello fp_MyClass_SayHello;
@@ -31,7 +32,7 @@ int main() {
 		printf("load %s failed.", dllname);
 		return 1;
 	}
-	fp_sizeof_MyClass = (F_sizof_MyClass)GetProcAddress(dll, "sizeof_MyClass");
+	fp_sizeof_MyClass = (F_sizeof_MyClass)GetProcAddress(dll, "sizeof_MyClass");
 	fp_MyClass_Construct = (F_MyClass_Construct)GetProcAddress(dll, "MyClass_Construct");
 	fp_MyClass_Destruct = (F_MyClass_Destruct)GetProcAddress(dll, "MyClass_Destruct");
 	fp_MyClass_SayHello = (F_MyClass_SayHello)GetProcAddress(dll, "MyClass_SayHello");
@@ -42,7 +43,7 @@ int main() {
 		printf("load %s failed.", soname);
 		return 1;
 	}
-	fp_sizeof_MyClass = (F_sizof_MyClass)dlsym(so, "sizof_MyClass");
+	fp_sizeof_MyClass = (F_sizeof_MyClass)dlsym(so, "sizeof_MyClass");
 	fp_MyClass_Construct = (F_MyClass_Construct)dlsym(so, "MyClass_Construct");
 	fp_MyClass_Destruct = (F_MyClass_Destruct)dlsym(so, "MyClass_Destruct");
 	fp_MyClass_SayHello = (F_MyClass_SayHello)dlsym(so, "MyClass_SayHello");

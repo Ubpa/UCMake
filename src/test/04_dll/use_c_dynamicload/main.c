@@ -30,7 +30,7 @@ int main() {
 		printf("load %s failed.", soname);
 		return 1;
 	}
-	mul = (Func*)dlsym(so, "mul");
+	mul = (Func)dlsym(so, "mul");
 #endif
 
 	printf("mul(2, 3): %d\n", mul(2, 3));

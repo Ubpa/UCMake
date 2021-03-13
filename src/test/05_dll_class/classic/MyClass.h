@@ -1,11 +1,14 @@
 #if (defined(WIN32) || defined(_WIN32)) && !defined(UCMake_test_05_dll_class_classic_gen_STATIC)
   #ifdef UCMake_test_05_dll_class_classic_gen_EXPORTS
     #define UCMake_test_05_dll_class_classic_gen_API __declspec(dllexport)
+    #define UCMake_test_05_dll_class_classic_gen_CLASS_API __declspec(dllexport)
   #else
     #define UCMake_test_05_dll_class_classic_gen_API __declspec(dllimport)
+    #define UCMake_test_05_dll_class_classic_gen_CLASS_API __declspec(dllimport)
   #endif
 #else
   #define UCMake_test_05_dll_class_classic_gen_API extern
+  #define UCMake_test_05_dll_class_classic_gen_CLASS_API
 #endif // (defined(WIN32) || defined(_WIN32)) && !defined(UCMake_test_05_dll_class_classic_gen_STATIC)
 
 #include <stddef.h>
@@ -13,7 +16,7 @@
 #ifdef __cplusplus
 #include <type_traits>
 
-class UCMake_test_05_dll_class_classic_gen_API MyClass {
+class UCMake_test_05_dll_class_classic_gen_CLASS_API MyClass {
 public:
 	int x;
 	int y;

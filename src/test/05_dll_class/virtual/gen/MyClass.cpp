@@ -2,7 +2,7 @@
 
 #include <iostream>
 
-class MyClassImpl : public MyClass {
+class MyClassImpl final : public MyClass {
 public:
 	MyClassImpl();
 	~MyClassImpl() override final;
