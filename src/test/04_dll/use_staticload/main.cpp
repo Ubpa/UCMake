@@ -1,4 +1,4 @@
-#include <mul.h>
+#include "../mul.h"
 
 #include <iostream>
 
