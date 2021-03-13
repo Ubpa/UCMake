@@ -21,9 +21,10 @@ int main() {
 	}
 	mul = (Func*)GetProcAddress(dll, "mul");
 #else
-	constexpr char soname[] = "UCMake_test_04_dll_gen" UCMAKE_CONFIG_POSTFIX ".so";
+	constexpr char soname[] = "./" "lib" "UCMake_test_04_dll_gen" UCMAKE_CONFIG_POSTFIX ".so";
 	auto so = dlopen(soname, RTLD_LAZY);
 	if (!so) {
+		std::cerr << dlerror() << std::endl;
 		std::cerr << "load " << soname << " faild." << std::endl;
 		return 1;
 	}
