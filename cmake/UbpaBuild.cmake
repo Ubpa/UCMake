@@ -306,20 +306,6 @@ function(Ubpa_AddTarget)
   endif()
 
   foreach(targetName ${targetNames})
-  target_compile_definitions(${targetName} PRIVATE
-      $<$<CONFIG:Debug>:UCMAKE_CONFIG_DEBUG>
-      $<$<CONFIG:Release>:UCMAKE_CONFIG_RELEASE>
-      $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_MINSIZEREL>
-      $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_RELWITHDEBINFO>
-    )
-    target_compile_definitions(${targetName} PRIVATE
-      $<$<CONFIG:Debug>:UCMAKE_CONFIG_POSTFIX="${CMAKE_DEBUG_POSTFIX}">
-      $<$<CONFIG:Release>:UCMAKE_CONFIG_POSTFIX="">
-      $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_POSTFIX="${CMAKE_MINSIZEREL_POSTFIX}">
-      $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_POSTFIX="${CMAKE_RELWITHDEBINFO_POSTFIX}">
-    )
-    target_compile_definitions(${targetName} PRIVATE UCMAKE_TARGET_NAME=${targetName})
-    
     if(NOT "${ARG_CXX_STANDARD}" STREQUAL "")
       set_property(TARGET ${targetName} PROPERTY CXX_STANDARD ${ARG_CXX_STANDARD})
       message(STATUS "- CXX_STANDARD : ${ARG_CXX_STANDARD}")

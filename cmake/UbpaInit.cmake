@@ -32,7 +32,18 @@ macro(Ubpa_InitProject)
 
   set(CMAKE_CXX_STANDARD 20)
   set(CMAKE_CXX_STANDARD_REQUIRED True)
-  
+  add_compile_definitions(
+    $<$<CONFIG:Debug>:UCMAKE_CONFIG_DEBUG>
+    $<$<CONFIG:Release>:UCMAKE_CONFIG_RELEASE>
+    $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_MINSIZEREL>
+    $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_RELWITHDEBINFO>
+  )
+  add_compile_definitions(
+    $<$<CONFIG:Debug>:UCMAKE_CONFIG_POSTFIX="${CMAKE_DEBUG_POSTFIX}">
+    $<$<CONFIG:Release>:UCMAKE_CONFIG_POSTFIX="">
+    $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_POSTFIX="${CMAKE_MINSIZEREL_POSTFIX}">
+    $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_POSTFIX="${CMAKE_RELWITHDEBINFO_POSTFIX}">
+  )
   if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
   # using Clang
     message(STATUS "Compiler: Clang ${CMAKE_CXX_COMPILER_VERSION}")
