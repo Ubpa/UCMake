@@ -129,7 +129,7 @@ function(Ubpa_AddTarget)
   # QT
   # NOT_GROUP
   # [value]
-  # MODE: EXE / STATIC / SHARED / INTERFACE
+  # MODE: EXE / STATIC / SHARED / INTERFACE / STATIC_AND_SHARED
   # ADD_CURRENT_TO: PUBLIC / INTERFACE / PRIVATE (default) / NONE
   # RET_TARGET_NAME
   # CXX_STANDARD: 11/14/17/20, default is global CXX_STANDARD (20)
@@ -191,13 +191,13 @@ function(Ubpa_AddTarget)
   file(RELATIVE_PATH targetRelPath "${PROJECT_SOURCE_DIR}/src" "${CMAKE_CURRENT_SOURCE_DIR}/..")
   set(targetFolder "${PROJECT_NAME}/${targetRelPath}")
   
-  Ubpa_GetTargetName(targetName ${CMAKE_CURRENT_SOURCE_DIR})
+  Ubpa_GetTargetName(coreTargetName ${CMAKE_CURRENT_SOURCE_DIR})
   if(NOT "${ARG_RET_TARGET_NAME}" STREQUAL "")
-    set(${ARG_RET_TARGET_NAME} ${targetName} PARENT_SCOPE)
+    set(${ARG_RET_TARGET_NAME} ${coreTargetName} PARENT_SCOPE)
   endif()
   
   # print
-  message(STATUS "- name: ${targetName}")
+  message(STATUS "- name: ${coreTargetName}")
   message(STATUS "- folder : ${targetFolder}")
   message(STATUS "- mode: ${ARG_MODE}")
   Ubpa_List_Print(STRS ${sources_private}
@@ -266,157 +266,174 @@ function(Ubpa_AddTarget)
   
   Ubpa_PackageName(package_name)
   
+  set(targetNames "")
+
   # add target
   if("${ARG_MODE}" STREQUAL "EXE")
-    add_executable(${targetName})
-    add_executable("Ubpa::${targetName}" ALIAS ${targetName})
+    add_executable(${coreTargetName})
+    add_executable("Ubpa::${coreTargetName}" ALIAS ${coreTargetName})
     if(MSVC)
-      set_target_properties(${targetName} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${Ubpa_RootProjectPath}/bin")
+      set_target_properties(${coreTargetName} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${Ubpa_RootProjectPath}/bin")
     endif()
-    set_target_properties(${targetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
-    set_target_properties(${targetName} PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
-    set_target_properties(${targetName} PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
+    set_target_properties(${coreTargetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+    set_target_properties(${coreTargetName} PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
+    set_target_properties(${coreTargetName} PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
+    list(APPEND targetNames ${coreTargetName})
   elseif("${ARG_MODE}" STREQUAL "STATIC")
-    add_library(${targetName} STATIC)
-    add_library("Ubpa::${targetName}" ALIAS ${targetName})
+    add_library(${coreTargetName} STATIC)
+    add_library("Ubpa::${coreTargetName}" ALIAS ${coreTargetName})
+    list(APPEND targetNames ${coreTargetName})
   elseif("${ARG_MODE}" STREQUAL "SHARED")
-    add_library(${targetName} SHARED)
-    add_library("Ubpa::${targetName}" ALIAS ${targetName})
+    add_library(${coreTargetName} SHARED)
+    add_library("Ubpa::${coreTargetName}" ALIAS ${coreTargetName})
+    target_compile_definitions(${coreTargetName} PRIVATE ${coreTargetName}_EXPORTS)
+    list(APPEND targetNames ${coreTargetName})
   elseif("${ARG_MODE}" STREQUAL "INTERFACE")
-    add_library(${targetName} INTERFACE)
-    add_library("Ubpa::${targetName}" ALIAS ${targetName})
+    add_library(${coreTargetName} INTERFACE)
+    add_library("Ubpa::${coreTargetName}" ALIAS ${coreTargetName})
+    list(APPEND targetNames ${coreTargetName})
+  elseif("${ARG_MODE}" STREQUAL "STATIC_AND_SHARED")
+    add_library(${coreTargetName}_static STATIC)
+    add_library("Ubpa::${coreTargetName}_static" ALIAS ${coreTargetName}_static)
+    add_library(${coreTargetName}_shared SHARED)
+    add_library("Ubpa::${coreTargetName}_shared" ALIAS ${coreTargetName}_shared)
+    target_compile_definitions(${coreTargetName}_static PUBLIC ${coreTargetName}_STATIC)
+    target_compile_definitions(${coreTargetName}_shared PRIVATE ${coreTargetName}_EXPORTS)
+    list(APPEND targetNames ${coreTargetName}_static ${coreTargetName}_shared)
   else()
     message(FATAL_ERROR "mode [${ARG_MODE}] is not supported")
     return()
   endif()
 
+  foreach(targetName ${targetNames})
   target_compile_definitions(${targetName} PRIVATE
-    $<$<CONFIG:Debug>:UCMAKE_CONFIG_DEBUG>
-    $<$<CONFIG:Release>:UCMAKE_CONFIG_RELEASE>
-    $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_MINSIZEREL>
-    $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_RELWITHDEBINFO>
-  )
-  target_compile_definitions(${targetName} PRIVATE
-    $<$<CONFIG:Debug>:UCMAKE_CONFIG_POSTFIX="${CMAKE_DEBUG_POSTFIX}">
-    $<$<CONFIG:Release>:UCMAKE_CONFIG_POSTFIX="">
-    $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_POSTFIX="${CMAKE_MINSIZEREL_POSTFIX}">
-    $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_POSTFIX="${CMAKE_RELWITHDEBINFO_POSTFIX}">
-  )
-  target_compile_definitions(${targetName} PRIVATE UCMAKE_TARGET_NAME=${targetName})
-  
-  if(NOT "${ARG_CXX_STANDARD}" STREQUAL "")
-    set_property(TARGET ${targetName} PROPERTY CXX_STANDARD ${ARG_CXX_STANDARD})
-    message(STATUS "- CXX_STANDARD : ${ARG_CXX_STANDARD}")
-  endif()
-
-  # folder
-  if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
-    set_target_properties(${targetName} PROPERTIES FOLDER ${targetFolder})
-  endif()
-  
-  # target sources
-  foreach(src ${sources_public})
-    get_filename_component(abs_src ${src} ABSOLUTE)
-    file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
-    target_sources(${targetName} PUBLIC
-      $<BUILD_INTERFACE:${abs_src}>
-      $<INSTALL_INTERFACE:${package_name}/${rel_src}>
+      $<$<CONFIG:Debug>:UCMAKE_CONFIG_DEBUG>
+      $<$<CONFIG:Release>:UCMAKE_CONFIG_RELEASE>
+      $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_MINSIZEREL>
+      $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_RELWITHDEBINFO>
     )
+    target_compile_definitions(${targetName} PRIVATE
+      $<$<CONFIG:Debug>:UCMAKE_CONFIG_POSTFIX="${CMAKE_DEBUG_POSTFIX}">
+      $<$<CONFIG:Release>:UCMAKE_CONFIG_POSTFIX="">
+      $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_POSTFIX="${CMAKE_MINSIZEREL_POSTFIX}">
+      $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_POSTFIX="${CMAKE_RELWITHDEBINFO_POSTFIX}">
+    )
+    target_compile_definitions(${targetName} PRIVATE UCMAKE_TARGET_NAME=${targetName})
+    
+    if(NOT "${ARG_CXX_STANDARD}" STREQUAL "")
+      set_property(TARGET ${targetName} PROPERTY CXX_STANDARD ${ARG_CXX_STANDARD})
+      message(STATUS "- CXX_STANDARD : ${ARG_CXX_STANDARD}")
+    endif()
+  
+    # folder
+    if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
+      set_target_properties(${targetName} PROPERTIES FOLDER ${targetFolder})
+    endif()
+    
+    # target sources
+    foreach(src ${sources_public})
+      get_filename_component(abs_src ${src} ABSOLUTE)
+      file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
+      target_sources(${targetName} PUBLIC
+        $<BUILD_INTERFACE:${abs_src}>
+        $<INSTALL_INTERFACE:${package_name}/${rel_src}>
+      )
+    endforeach()
+    foreach(src ${sources_private})
+      get_filename_component(abs_src ${src} ABSOLUTE)
+      file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
+      target_sources(${targetName} PRIVATE
+        $<BUILD_INTERFACE:${abs_src}>
+        $<INSTALL_INTERFACE:${package_name}/${rel_src}>
+      )
+    endforeach()
+    foreach(src ${sources_interface})
+      get_filename_component(abs_src ${src} ABSOLUTE)
+      file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
+      target_sources(${targetName} INTERFACE
+        $<BUILD_INTERFACE:${abs_src}>
+        $<INSTALL_INTERFACE:${package_name}/${rel_src}>
+      )
+    endforeach()
+    
+    # target define
+    target_compile_definitions(${targetName}
+      PUBLIC ${ARG_DEFINE}
+      INTERFACE ${ARG_DEFINE_INTERFACE}
+      PRIVATE ${ARG_DEFINE_PRIVATE}
+    )
+    
+    # target lib
+    target_link_libraries(${targetName}
+      PUBLIC ${ARG_LIB}
+      INTERFACE ${ARG_LIB_INTERFACE}
+      PRIVATE ${ARG_LIB_PRIVATE}
+    )
+    
+    # target inc
+    foreach(inc ${ARG_INC})
+      get_filename_component(abs_inc ${inc} ABSOLUTE)
+      file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${abs_inc})
+      target_include_directories(${targetName} PUBLIC
+        $<BUILD_INTERFACE:${abs_inc}>
+        $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
+      )
+    endforeach()
+    foreach(inc ${ARG_INC_PRIVATE})
+      get_filename_component(abs_inc ${inc} ABSOLUTE)
+      file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${abs_inc})
+      target_include_directories(${targetName} PRIVATE
+        $<BUILD_INTERFACE:${abs_inc}>
+        $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
+      )
+    endforeach()
+    foreach(inc ${ARG_INC_INTERFACE})
+      get_filename_component(abs_inc ${inc} ABSOLUTE)
+      file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${inc})
+      target_include_directories(${targetName} INTERFACE
+        $<BUILD_INTERFACE:${abs_inc}>
+        $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
+      )
+    endforeach()
+    
+    # target compile option
+    target_compile_options(${targetName}
+      PUBLIC ${ARG_C_OPTION}
+      INTERFACE ${ARG_C_OPTION_INTERFACE}
+      PRIVATE ${ARG_C_OPTION_PRIVATE}
+    )
+    
+    # target link option
+    target_link_options(${targetName}
+      PUBLIC ${ARG_L_OPTION}
+      INTERFACE ${ARG_L_OPTION_INTERFACE}
+      PRIVATE ${ARG_L_OPTION_PRIVATE}
+    )
+    
+    # target pch
+    target_precompile_headers(${targetName}
+      PUBLIC ${ARG_PCH_PUBLIC}
+      INTERFACE ${ARG_PCH_INTERFACE}
+      PRIVATE ${ARG_PCH}
+    )
+    
+    if(NOT "${ARG_OUTPUT_NAME}" STREQUAL "")
+      set_target_properties(${targetName} PROPERTIES OUTPUT_NAME "${ARG_OUTPUT_NAME}" CLEAN_DIRECT_OUTPUT 1)
+    endif()
+  
+    if(NOT "${ARG_PCH_REUSE_FROM}" STREQUAL "")
+      target_precompile_headers(${targetName} REUSE_FROM "${ARG_PCH_REUSE_FROM}")
+    endif()
+  
+    if(NOT ARG_TEST)
+      install(TARGETS ${targetName}
+        EXPORT "${PROJECT_NAME}Targets"
+        RUNTIME DESTINATION "bin"
+        ARCHIVE DESTINATION "${package_name}/lib"
+        LIBRARY DESTINATION "${package_name}/lib"
+      )
+    endif()
   endforeach()
-  foreach(src ${sources_private})
-    get_filename_component(abs_src ${src} ABSOLUTE)
-    file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
-    target_sources(${targetName} PRIVATE
-      $<BUILD_INTERFACE:${abs_src}>
-      $<INSTALL_INTERFACE:${package_name}/${rel_src}>
-    )
-  endforeach()
-  foreach(src ${sources_interface})
-    get_filename_component(abs_src ${src} ABSOLUTE)
-    file(RELATIVE_PATH rel_src ${PROJECT_SOURCE_DIR} ${abs_src})
-    target_sources(${targetName} INTERFACE
-      $<BUILD_INTERFACE:${abs_src}>
-      $<INSTALL_INTERFACE:${package_name}/${rel_src}>
-    )
-  endforeach()
-  
-  # target define
-  target_compile_definitions(${targetName}
-    PUBLIC ${ARG_DEFINE}
-    INTERFACE ${ARG_DEFINE_INTERFACE}
-    PRIVATE ${ARG_DEFINE_PRIVATE}
-  )
-  
-  # target lib
-  target_link_libraries(${targetName}
-    PUBLIC ${ARG_LIB}
-    INTERFACE ${ARG_LIB_INTERFACE}
-    PRIVATE ${ARG_LIB_PRIVATE}
-  )
-  
-  # target inc
-  foreach(inc ${ARG_INC})
-    get_filename_component(abs_inc ${inc} ABSOLUTE)
-    file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${abs_inc})
-    target_include_directories(${targetName} PUBLIC
-      $<BUILD_INTERFACE:${abs_inc}>
-      $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
-    )
-  endforeach()
-  foreach(inc ${ARG_INC_PRIVATE})
-    get_filename_component(abs_inc ${inc} ABSOLUTE)
-    file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${abs_inc})
-    target_include_directories(${targetName} PRIVATE
-      $<BUILD_INTERFACE:${abs_inc}>
-      $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
-    )
-  endforeach()
-  foreach(inc ${ARG_INC_INTERFACE})
-    get_filename_component(abs_inc ${inc} ABSOLUTE)
-    file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${inc})
-    target_include_directories(${targetName} INTERFACE
-      $<BUILD_INTERFACE:${abs_inc}>
-      $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
-    )
-  endforeach()
-  
-  # target compile option
-  target_compile_options(${targetName}
-    PUBLIC ${ARG_C_OPTION}
-    INTERFACE ${ARG_C_OPTION_INTERFACE}
-    PRIVATE ${ARG_C_OPTION_PRIVATE}
-  )
-  
-  # target link option
-  target_link_options(${targetName}
-    PUBLIC ${ARG_L_OPTION}
-    INTERFACE ${ARG_L_OPTION_INTERFACE}
-    PRIVATE ${ARG_L_OPTION_PRIVATE}
-  )
-  
-  # target pch
-  target_precompile_headers(${targetName}
-    PUBLIC ${ARG_PCH_PUBLIC}
-    INTERFACE ${ARG_PCH_INTERFACE}
-    PRIVATE ${ARG_PCH}
-  )
-  
-  if(NOT "${ARG_OUTPUT_NAME}" STREQUAL "")
-    set_target_properties(${targetName} PROPERTIES OUTPUT_NAME "${ARG_OUTPUT_NAME}" CLEAN_DIRECT_OUTPUT 1)
-  endif()
-
-  if(NOT "${ARG_PCH_REUSE_FROM}" STREQUAL "")
-    target_precompile_headers(${targetName} REUSE_FROM "${ARG_PCH_REUSE_FROM}")
-  endif()
-
-  if(NOT ARG_TEST)
-    install(TARGETS ${targetName}
-      EXPORT "${PROJECT_NAME}Targets"
-      RUNTIME DESTINATION "bin"
-      ARCHIVE DESTINATION "${package_name}/lib"
-      LIBRARY DESTINATION "${package_name}/lib"
-    )
-  endif()
   
   if(ARG_QT)
     Ubpa_QtEnd()
