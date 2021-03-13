@@ -274,6 +274,8 @@ function(Ubpa_AddTarget)
       set_target_properties(${targetName} PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${Ubpa_RootProjectPath}/bin")
     endif()
     set_target_properties(${targetName} PROPERTIES DEBUG_POSTFIX ${CMAKE_DEBUG_POSTFIX})
+    set_target_properties(${targetName} PROPERTIES MINSIZEREL_POSTFIX ${CMAKE_MINSIZEREL_POSTFIX})
+    set_target_properties(${targetName} PROPERTIES RELWITHDEBINFO_POSTFIX ${CMAKE_RELWITHDEBINFO_POSTFIX})
   elseif("${ARG_MODE}" STREQUAL "STATIC")
     add_library(${targetName} STATIC)
     add_library("Ubpa::${targetName}" ALIAS ${targetName})
@@ -287,6 +289,20 @@ function(Ubpa_AddTarget)
     message(FATAL_ERROR "mode [${ARG_MODE}] is not supported")
     return()
   endif()
+
+  target_compile_definitions(${targetName} PRIVATE
+    $<$<CONFIG:Debug>:UCMAKE_CONFIG_DEBUG>
+    $<$<CONFIG:Release>:UCMAKE_CONFIG_RELEASE>
+    $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_MINSIZEREL>
+    $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_RELWITHDEBINFO>
+  )
+  target_compile_definitions(${targetName} PRIVATE
+    $<$<CONFIG:Debug>:UCMAKE_CONFIG_POSTFIX="${CMAKE_DEBUG_POSTFIX}">
+    $<$<CONFIG:Release>:UCMAKE_CONFIG_POSTFIX="">
+    $<$<CONFIG:MinSizeRel>:UCMAKE_CONFIG_POSTFIX="${CMAKE_MINSIZEREL_POSTFIX}">
+    $<$<CONFIG:RelWithDebInfo>:UCMAKE_CONFIG_POSTFIX="${CMAKE_RELWITHDEBINFO_POSTFIX}">
+  )
+  target_compile_definitions(${targetName} PRIVATE UCMAKE_TARGET_NAME=${targetName})
   
   if(NOT "${ARG_CXX_STANDARD}" STREQUAL "")
     set_property(TARGET ${targetName} PROPERTY CXX_STANDARD ${ARG_CXX_STANDARD})
