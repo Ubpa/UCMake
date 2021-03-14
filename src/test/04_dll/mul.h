@@ -1,5 +1,5 @@
-#if (defined(WIN32) || defined(_WIN32)) && !defined(UCMake_test_04_dll_STATIC)
-  #ifdef UCMake_test_04_dll_gen_EXPORTS
+#if (defined(WIN32) || defined(_WIN32)) && !defined(UCMAKE_STATIC_UCMake_test_04_dll)
+  #ifdef UCMAKE_EXPORT_UCMake_test_04_dll_gen
     #define UCMake_test_04_dll_gen_API __declspec(dllexport)
   #else
     #define UCMake_test_04_dll_gen_API __declspec(dllimport)

@@ -1,12 +1,12 @@
-#if (defined(WIN32) || defined(_WIN32)) && !defined(UCMake_test_05_dll_class_virtual_gen_STATIC)
-  #ifdef UCMake_test_05_dll_class_virtual_gen_EXPORTS
+#if (defined(WIN32) || defined(_WIN32)) && !defined(UCMAKE_STATIC_UCMake_test_05_dll_class_virtual_gen)
+  #ifdef UCMAKE_EXPORT_UCMake_test_05_dll_class_virtual_gen
     #define UCMake_test_05_dll_class_virtual_gen_API __declspec(dllexport)
   #else
     #define UCMake_test_05_dll_class_virtual_gen_API __declspec(dllimport)
   #endif
 #else
   #define UCMake_test_05_dll_class_virtual_gen_API extern
-#endif // (defined(WIN32) || defined(_WIN32)) && !defined(UCMake_test_05_dll_class_virtual_gen_STATIC)
+#endif // (defined(WIN32) || defined(_WIN32)) && !defined(UCMAKE_STATIC_UCMake_test_05_dll_class_virtual_gen)
 
 #include <stddef.h>
 
