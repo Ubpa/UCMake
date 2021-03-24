@@ -45,6 +45,7 @@ endfunction()
 
 function(Ubpa_DownloadZip_Pro url zipname dir hash_type hash)
   set(filename "${CMAKE_BINARY_DIR}/${PROJECT_NAME}/${zipname}")
+  Ubpa_IsNeedDownload(need ${filename} ${hash_type} ${hash})
   if(NOT need)
     message(STATUS "Found File: ${filename}")
     return()
