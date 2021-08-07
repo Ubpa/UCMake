@@ -441,19 +441,19 @@ function(Ubpa_AddTarget)
         # lib
         install(FILES
           "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG}/${targetName}${CMAKE_DEBUG_POSTFIX}.pdb"
-          CONFIGURATIONS Debug DESTINATION "lib" OPTIONAL
+          CONFIGURATIONS Debug DESTINATION "${package_name}/lib" OPTIONAL
         )
         install(FILES
           "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE}/${targetName}${CMAKE_RELEASE_POSTFIX}.pdb"
-          CONFIGURATIONS Release DESTINATION "lib" OPTIONAL
+          CONFIGURATIONS Release DESTINATION "${package_name}/lib" OPTIONAL
         )
         install(FILES
           "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_MINSIZEREL}/${targetName}${CMAKE_MINSIZEREL_POSTFIX}.pdb"
-          CONFIGURATIONS MinSizeRel DESTINATION "lib" OPTIONAL
+          CONFIGURATIONS MinSizeRel DESTINATION "${package_name}/lib" OPTIONAL
         )
         install(FILES
           "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO}/${targetName}${CMAKE_RELWITHDEBINFO_POSTFIX}.pdb"
-          CONFIGURATIONS RelWithDebugInfo DESTINATION "lib" OPTIONAL
+          CONFIGURATIONS RelWithDebugInfo DESTINATION "${package_name}/lib" OPTIONAL
         )
       endif()
     endif()
