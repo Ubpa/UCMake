@@ -418,6 +418,44 @@ function(Ubpa_AddTarget)
         ARCHIVE DESTINATION "${package_name}/lib"
         LIBRARY DESTINATION "${package_name}/lib"
       )
+      if("${ARG_MODE}" STREQUAL "STATIC" OR
+        "${ARG_MODE}" STREQUAL "SHARED" OR
+        "${ARG_MODE}" STREQUAL "STATIC_AND_SHARED")
+        # dll
+        install(FILES
+          "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/${targetName}${CMAKE_DEBUG_POSTFIX}.pdb"
+          CONFIGURATIONS Debug DESTINATION "bin" OPTIONAL
+        )
+        install(FILES
+          "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/${targetName}${CMAKE_RELEASE_POSTFIX}.pdb"
+          CONFIGURATIONS Release DESTINATION "bin" OPTIONAL
+        )
+        install(FILES
+          "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL}/${targetName}${CMAKE_MINSIZEREL_POSTFIX}.pdb"
+          CONFIGURATIONS MinSizeRel DESTINATION "bin" OPTIONAL
+        )
+        install(FILES
+          "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO}/${targetName}${CMAKE_RELWITHDEBINFO_POSTFIX}.pdb"
+          CONFIGURATIONS RelWithDebugInfo DESTINATION "bin" OPTIONAL
+        )
+        # lib
+        install(FILES
+          "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG}/${targetName}${CMAKE_DEBUG_POSTFIX}.pdb"
+          CONFIGURATIONS Debug DESTINATION "lib" OPTIONAL
+        )
+        install(FILES
+          "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE}/${targetName}${CMAKE_RELEASE_POSTFIX}.pdb"
+          CONFIGURATIONS Release DESTINATION "lib" OPTIONAL
+        )
+        install(FILES
+          "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_MINSIZEREL}/${targetName}${CMAKE_MINSIZEREL_POSTFIX}.pdb"
+          CONFIGURATIONS MinSizeRel DESTINATION "lib" OPTIONAL
+        )
+        install(FILES
+          "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO}/${targetName}${CMAKE_RELWITHDEBINFO_POSTFIX}.pdb"
+          CONFIGURATIONS RelWithDebugInfo DESTINATION "lib" OPTIONAL
+        )
+      endif()
     endif()
   endforeach()
   
