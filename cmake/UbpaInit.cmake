@@ -14,6 +14,7 @@ include("${CMAKE_CURRENT_LIST_DIR}/UbpaDownload.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaGit.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaPackage.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaQt.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/UbpaDoc.cmake")
 
 #Ubpa_DownloadFile(
 #  https://cdn.jsdelivr.net/gh/Ubpa/UData@master/UCMake/CPM/CPM_3b40429.cmake
@@ -103,4 +104,11 @@ macro(Ubpa_InitProject)
   set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
   
   set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+  option(Ubpa_${CMAKE_PROJECT_NAME}_BuildDoc "Build Doc (need Doxygen)" OFF)
+  if(Ubpa_${CMAKE_PROJECT_NAME}_BuildDoc)
+    find_package(Doxygen REQUIRED)
+  else()
+    message(STATUS "Not build doc")
+  endif()
 endmacro()
