@@ -436,7 +436,7 @@ function(Ubpa_AddTarget)
         )
         install(FILES
           "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO}/${targetName}${CMAKE_RELWITHDEBINFO_POSTFIX}.pdb"
-          CONFIGURATIONS RelWithDebugInfo DESTINATION "bin" OPTIONAL
+          CONFIGURATIONS RelWithDebInfo DESTINATION "bin" OPTIONAL
         )
         # lib
         install(FILES
@@ -453,7 +453,7 @@ function(Ubpa_AddTarget)
         )
         install(FILES
           "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO}/${targetName}${CMAKE_RELWITHDEBINFO_POSTFIX}.pdb"
-          CONFIGURATIONS RelWithDebugInfo DESTINATION "${package_name}/lib" OPTIONAL
+          CONFIGURATIONS RelWithDebInfo DESTINATION "${package_name}/lib" OPTIONAL
         )
       endif()
     endif()
