@@ -402,6 +402,16 @@ function(Ubpa_AddTarget)
       INTERFACE ${ARG_PCH_INTERFACE}
       PRIVATE ${ARG_PCH}
     )
+
+    # target pdb
+    if (MSVC)
+      set_target_properties(${targetName}
+        PROPERTIES
+        COMPILE_PDB_NAME_DEBUG ${targetName}${CMAKE_DEBUG_POSTFIX}
+        COMPILE_PDB_NAME_RELEASE ${targetName}${CMAKE_RELEASE_POSTFIX}
+        COMPILE_PDB_NAME_MINSIZEREL ${targetName}${CMAKE_MINSIZEREL_POSTFIX}
+        COMPILE_PDB_NAME_RELWITHDEBINFO ${targetName}${CMAKE_RELWITHDEBINFO_POSTFIX})
+    endif()
     
     if(NOT "${ARG_OUTPUT_NAME}" STREQUAL "")
       set_target_properties(${targetName} PROPERTIES OUTPUT_NAME "${ARG_OUTPUT_NAME}" CLEAN_DIRECT_OUTPUT 1)
