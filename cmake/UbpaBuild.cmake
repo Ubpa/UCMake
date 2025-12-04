@@ -397,6 +397,11 @@ function(Ubpa_AddTarget)
       INTERFACE ${ARG_C_OPTION_INTERFACE}
       PRIVATE ${ARG_C_OPTION_PRIVATE}
     )
+
+    # enable parallel compilation for MSVC
+    if(MSVC AND NOT ${ARG_MODE} STREQUAL "INTERFACE")
+      target_compile_options(${targetName} PRIVATE /MP)
+    endif()
     
     # target link option
     target_link_options(${targetName}
