@@ -70,6 +70,8 @@ macro(Ubpa_InitProject)
       message(FATAL_ERROR "MSVC (< 1926 / 2019 16.6) not support concept")
       return()
     endif()
+    # enable parallel compilation
+    add_compile_options(/MP)
   else()
     message(WARNING "Unknown CMAKE_CXX_COMPILER_ID : ${CMAKE_CXX_COMPILER_ID}")
   endif()
