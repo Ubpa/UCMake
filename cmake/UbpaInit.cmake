@@ -82,7 +82,13 @@ macro(Ubpa_InitProject)
   endif()
   
   set("Ubpa_BuildTest_${PROJECT_NAME}" TRUE CACHE BOOL "build tests for ${PROJECT_NAME}")
-  
+
+  # create a custom target for building all tests
+  if(NOT TARGET ${PROJECT_NAME}_BuildTests)
+    add_custom_target(${PROJECT_NAME}_BuildTests)
+    set_target_properties(${PROJECT_NAME}_BuildTests PROPERTIES FOLDER "${PROJECT_NAME}")
+  endif()
+
   if(NOT Ubpa_RootProjectPath)
     set(Ubpa_RootProjectPath ${PROJECT_SOURCE_DIR})
   endif()

@@ -310,7 +310,16 @@ function(Ubpa_AddTarget)
       set_property(TARGET ${targetName} PROPERTY CXX_STANDARD ${ARG_CXX_STANDARD})
       message(STATUS "- CXX_STANDARD : ${ARG_CXX_STANDARD}")
     endif()
-  
+
+    # exclude test targets from ALL to avoid building them during install
+    if(ARG_TEST AND NOT ${ARG_MODE} STREQUAL "INTERFACE")
+      set_target_properties(${targetName} PROPERTIES EXCLUDE_FROM_ALL TRUE)
+      # add test target to ${PROJECT_NAME}_BuildTests for convenient batch building
+      if(TARGET ${PROJECT_NAME}_BuildTests)
+        add_dependencies(${PROJECT_NAME}_BuildTests ${targetName})
+      endif()
+    endif()
+
     # folder
     if(NOT ${ARG_MODE} STREQUAL "INTERFACE")
       set_target_properties(${targetName} PROPERTIES FOLDER ${targetFolder})
