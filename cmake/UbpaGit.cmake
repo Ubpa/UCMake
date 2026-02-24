@@ -25,17 +25,11 @@ function(Ubpa_UpdateSubModule)
     message(FATAL_ERROR "you should call Ubpa_InitGit() before calling Ubpa_UpdateSubModule()")
   endif()
   execute_process(
-    COMMAND ${GIT_EXECUTABLE} submodule init
-    #OUTPUT_VARIABLE out
-    #OUTPUT_STRIP_TRAILING_WHITESPACE
-    #ERROR_QUIET
+    COMMAND ${GIT_EXECUTABLE} submodule update --init
     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+    RESULT_VARIABLE _result
   )
-  execute_process(
-    COMMAND ${GIT_EXECUTABLE} submodule update
-    #OUTPUT_VARIABLE out
-    #OUTPUT_STRIP_TRAILING_WHITESPACE
-    #ERROR_QUIET
-    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
-  )
+  if(NOT _result EQUAL 0)
+    message(FATAL_ERROR "git submodule update --init failed with: ${_result}")
+  endif()
 endfunction()

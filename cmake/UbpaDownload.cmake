@@ -23,26 +23,23 @@ function(Ubpa_DownloadFile url filename hash_type hash)
   string(REGEX MATCH ".*/" dir ${filename})
   file(MAKE_DIRECTORY ${dir})
   message(STATUS "Download File")
-  message(STATUS "- ulr      : ${url}")
+  message(STATUS "- url      : ${url}")
   message(STATUS "- file name: ${filename}")
   file(DOWNLOAD ${url} ${filename}
-    #TIMEOUT 120 # seconds
-	SHOW_PROGRESS
+    TIMEOUT 120
+    SHOW_PROGRESS
     EXPECTED_HASH ${hash_type}=${hash}
-    TLS_VERIFY ON)
+    TLS_VERIFY ON
+    STATUS _download_status)
+  list(GET _download_status 0 _download_code)
+  list(GET _download_status 1 _download_msg)
+  if(NOT _download_code EQUAL 0)
+    message(FATAL_ERROR "Download failed (${_download_code}): ${_download_msg}\n  url: ${url}")
+  endif()
 endfunction()
 
 function(Ubpa_DownloadZip url zipname hash_type hash)
-  set(filename "${CMAKE_BINARY_DIR}/${PROJECT_NAME}/${zipname}")
-  Ubpa_IsNeedDownload(need ${filename} ${hash_type} ${hash})
-  if(NOT need)
-    message(STATUS "Found File: ${filename}")
-    return()
-  endif()
-  Ubpa_DownloadFile(${url} ${filename} ${hash_type} ${hash})
-  # this is OS-agnostic
-  execute_process(COMMAND ${CMAKE_COMMAND} -E tar -xf ${filename}
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+  Ubpa_DownloadZip_Pro(${url} ${zipname} ${CMAKE_CURRENT_SOURCE_DIR} ${hash_type} ${hash})
 endfunction()
 
 function(Ubpa_DownloadZip_Pro url zipname dir hash_type hash)
@@ -53,10 +50,14 @@ function(Ubpa_DownloadZip_Pro url zipname dir hash_type hash)
     return()
   endif()
   Ubpa_DownloadFile(${url} ${filename} ${hash_type} ${hash})
-  # this is OS-agnostic
   file(MAKE_DIRECTORY ${dir})
-  execute_process(COMMAND ${CMAKE_COMMAND} -E tar -xf ${filename}
-    WORKING_DIRECTORY ${dir})
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} -E tar -xf ${filename}
+    WORKING_DIRECTORY ${dir}
+    RESULT_VARIABLE _extract_result)
+  if(NOT _extract_result EQUAL 0)
+    message(FATAL_ERROR "Extract failed (${_extract_result}): ${filename}")
+  endif()
 endfunction()
 
 function(Ubpa_DownloadTestFile url filename hash_type hash)

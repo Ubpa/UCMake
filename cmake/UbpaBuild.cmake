@@ -31,7 +31,7 @@ function(_Ubpa_ExpandSources rst _sources)
         # msvc
         ${item}/*.natvis
         
-        # INTERFACEer files
+        # header files
         ${item}/*.h
         ${item}/*.hpp
         ${item}/*.hxx
@@ -135,7 +135,7 @@ function(Ubpa_AddTarget)
   # CXX_STANDARD: 11/14/17/20, default is global CXX_STANDARD (20)
   # PCH_REUSE_FROM
   # [list] : public, interface, private
-  # SOURCE: dir(recursive), file, auto add currunt dir | target_sources
+  # SOURCE: dir(recursive), file, auto add current dir | target_sources
   # INC: dir                                           | target_include_directories
   # LIB: <lib-target>, *.lib                           | target_link_libraries
   # DEFINE: #define ...                                | target_compile_definitions
@@ -167,7 +167,7 @@ function(Ubpa_AddTarget)
   _Ubpa_ExpandSources(sources_private ARG_SOURCE)
   
   # group
-  if(NOT NOT_GROUP)
+  if(NOT ARG_NOT_GROUP)
     set(allsources ${sources_public} ${sources_interface} ${sources_private})
     foreach(src ${allsources})
       get_filename_component(dir ${src} DIRECTORY)
@@ -212,10 +212,10 @@ function(Ubpa_AddTarget)
   Ubpa_List_Print(STRS ${ARG_DEFINE}
     TITLE  "- define (public):"
     PREFIX "  * ")
-  Ubpa_List_Print(STRS ${ARG_DEFINE_PRIVATE}
+  Ubpa_List_Print(STRS ${ARG_DEFINE_INTERFACE}
     TITLE  "- define interface:"
     PREFIX "  * ")
-  Ubpa_List_Print(STRS ${ARG_DEFINE_INTERFACE}
+  Ubpa_List_Print(STRS ${ARG_DEFINE_PRIVATE}
     TITLE  "- define private:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_LIB}
@@ -235,15 +235,6 @@ function(Ubpa_AddTarget)
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_INC_PRIVATE}
     TITLE  "- inc private:"
-    PREFIX "  * ")
-  Ubpa_List_Print(STRS ${ARG_DEFINE}
-    TITLE  "- define (public):"
-    PREFIX "  * ")
-  Ubpa_List_Print(STRS ${ARG_DEFINE_INTERFACE}
-    TITLE  "- define interface:"
-    PREFIX "  * ")
-  Ubpa_List_Print(STRS ${ARG_DEFINE_PRIVATE}
-    TITLE  "- define private:"
     PREFIX "  * ")
   Ubpa_List_Print(STRS ${ARG_C_OPTION}
     TITLE  "- compile option (public):"
@@ -392,7 +383,7 @@ function(Ubpa_AddTarget)
     endforeach()
     foreach(inc ${ARG_INC_INTERFACE})
       get_filename_component(abs_inc ${inc} ABSOLUTE)
-      file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${inc})
+      file(RELATIVE_PATH rel_inc ${PROJECT_SOURCE_DIR} ${abs_inc})
       target_include_directories(${targetName} INTERFACE
         $<BUILD_INTERFACE:${abs_inc}>
         $<INSTALL_INTERFACE:${package_name}/${rel_inc}>
@@ -453,40 +444,20 @@ function(Ubpa_AddTarget)
       if("${ARG_MODE}" STREQUAL "STATIC" OR
         "${ARG_MODE}" STREQUAL "SHARED" OR
         "${ARG_MODE}" STREQUAL "STATIC_AND_SHARED")
-        # dll
-        install(FILES
-          "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG}/${targetName}${CMAKE_DEBUG_POSTFIX}.pdb"
-          CONFIGURATIONS Debug DESTINATION "bin" OPTIONAL
-        )
-        install(FILES
-          "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE}/${targetName}${CMAKE_RELEASE_POSTFIX}.pdb"
-          CONFIGURATIONS Release DESTINATION "bin" OPTIONAL
-        )
-        install(FILES
-          "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL}/${targetName}${CMAKE_MINSIZEREL_POSTFIX}.pdb"
-          CONFIGURATIONS MinSizeRel DESTINATION "bin" OPTIONAL
-        )
-        install(FILES
-          "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO}/${targetName}${CMAKE_RELWITHDEBINFO_POSTFIX}.pdb"
-          CONFIGURATIONS RelWithDebInfo DESTINATION "bin" OPTIONAL
-        )
-        # lib
-        install(FILES
-          "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG}/${targetName}${CMAKE_DEBUG_POSTFIX}.pdb"
-          CONFIGURATIONS Debug DESTINATION "${package_name}/lib" OPTIONAL
-        )
-        install(FILES
-          "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE}/${targetName}${CMAKE_RELEASE_POSTFIX}.pdb"
-          CONFIGURATIONS Release DESTINATION "${package_name}/lib" OPTIONAL
-        )
-        install(FILES
-          "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_MINSIZEREL}/${targetName}${CMAKE_MINSIZEREL_POSTFIX}.pdb"
-          CONFIGURATIONS MinSizeRel DESTINATION "${package_name}/lib" OPTIONAL
-        )
-        install(FILES
-          "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO}/${targetName}${CMAKE_RELWITHDEBINFO_POSTFIX}.pdb"
-          CONFIGURATIONS RelWithDebInfo DESTINATION "${package_name}/lib" OPTIONAL
-        )
+        foreach(_cfg Debug Release MinSizeRel RelWithDebInfo)
+          string(TOUPPER ${_cfg} _cfg_upper)
+          set(_postfix "${CMAKE_${_cfg_upper}_POSTFIX}")
+          # dll pdb
+          install(FILES
+            "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_${_cfg_upper}}/${targetName}${_postfix}.pdb"
+            CONFIGURATIONS ${_cfg} DESTINATION "bin" OPTIONAL
+          )
+          # lib pdb
+          install(FILES
+            "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${_cfg_upper}}/${targetName}${_postfix}.pdb"
+            CONFIGURATIONS ${_cfg} DESTINATION "${package_name}/lib" OPTIONAL
+          )
+        endforeach()
       endif()
     endif()
   endforeach()

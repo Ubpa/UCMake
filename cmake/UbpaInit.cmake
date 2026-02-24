@@ -1,6 +1,6 @@
 # 1. include all cmake files
 # 2. debug postfix
-# 3. C++ 17
+# 3. C++ 20
 # 4. install prefix
 # 5. set Ubpa_BuildTest_${PROJECT_NAME}
 # 6. output directory
@@ -110,6 +110,18 @@ macro(Ubpa_InitProject)
       COMMENT "Installing ${PROJECT_NAME}..."
     )
     set_target_properties(${PROJECT_NAME}_Install PROPERTIES FOLDER "${PROJECT_NAME}")
+  endif()
+
+  # create a custom target for batch install (all 4 configurations)
+  if(NOT TARGET ${PROJECT_NAME}_InstallAll)
+    add_custom_target(${PROJECT_NAME}_InstallAll
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config Debug --target install
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config Release --target install
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config MinSizeRel --target install
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config RelWithDebInfo --target install
+      COMMENT "Installing ${PROJECT_NAME} for all configurations (Debug, Release, MinSizeRel, RelWithDebInfo)..."
+    )
+    set_target_properties(${PROJECT_NAME}_InstallAll PROPERTIES FOLDER "${PROJECT_NAME}")
   endif()
 
   if(NOT Ubpa_RootProjectPath)

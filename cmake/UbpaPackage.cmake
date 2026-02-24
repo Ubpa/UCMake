@@ -4,9 +4,8 @@
 #
 # ----------------------------------------------------------------------------
 #
-# Ubpa_Export([INC <inc>])
-# - export some files
-# - inc: default ON, install include/
+# Ubpa_Export([TARGET] [CPM] [DIRECTORIES <dir-list>])
+# - export package config, version, and optionally targets
 #
 # ----------------------------------------------------------------------------
 
@@ -50,7 +49,7 @@ macro(Ubpa_AddDepPro projectName name version)
   else()
     set(_A_version "${${name}_VERSION}")
     set(_B_version "${version}")
-    if(_A_version EQUAL _B_version)
+    if(_A_version VERSION_EQUAL _B_version)
       message(STATUS "Diamond dependence of ${name} with same version: ${_A_version} and ${_B_version}")
       set(_need_find FALSE)
     else()
@@ -62,7 +61,7 @@ macro(Ubpa_AddDepPro projectName name version)
     list(APPEND Ubpa_${projectName}_dep_version_list ${version})
     message(STATUS "find package: ${name} ${version}")
     find_package(${name} ${version} QUIET)
-    if(${${name}_FOUND})
+    if(${name}_FOUND)
       message(STATUS "${name} ${${name}_VERSION} found")
     else()
       set(_address "https://github.com/Ubpa/${name}")
