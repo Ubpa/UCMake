@@ -254,6 +254,18 @@ function(Ubpa_AddTarget)
   Ubpa_List_Print(STRS ${ARG_L_OPTION_PRIVATE}
     TITLE  "- link option private:"
     PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_PCH_PUBLIC}
+    TITLE  "- PCH (public):"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_PCH_INTERFACE}
+    TITLE  "- PCH interface:"
+    PREFIX "  * ")
+  Ubpa_List_Print(STRS ${ARG_PCH}
+    TITLE  "- PCH private:"
+    PREFIX "  * ")
+  if(NOT "${ARG_PCH_REUSE_FROM}" STREQUAL "")
+    message(STATUS "- PCH reuse from: ${ARG_PCH_REUSE_FROM}")
+  endif()
   
   Ubpa_PackageName(package_name)
   
@@ -297,9 +309,18 @@ function(Ubpa_AddTarget)
   endif()
 
   foreach(targetName ${targetNames})
+    # set C++ standard via target_compile_features (propagates to dependents)
     if(NOT "${ARG_CXX_STANDARD}" STREQUAL "")
-      set_property(TARGET ${targetName} PROPERTY CXX_STANDARD ${ARG_CXX_STANDARD})
-      message(STATUS "- CXX_STANDARD : ${ARG_CXX_STANDARD}")
+      set(_cxx_std ${ARG_CXX_STANDARD})
+    else()
+      set(_cxx_std ${CMAKE_CXX_STANDARD})
+    endif()
+    if(_cxx_std AND NOT "${ARG_MODE}" STREQUAL "INTERFACE")
+      target_compile_features(${targetName} PUBLIC cxx_std_${_cxx_std})
+      message(STATUS "- CXX_STANDARD : ${_cxx_std} (via target_compile_features)")
+    elseif(_cxx_std AND "${ARG_MODE}" STREQUAL "INTERFACE")
+      target_compile_features(${targetName} INTERFACE cxx_std_${_cxx_std})
+      message(STATUS "- CXX_STANDARD : ${_cxx_std} (via target_compile_features, INTERFACE)")
     endif()
 
     # exclude test targets from ALL to avoid building them during install
