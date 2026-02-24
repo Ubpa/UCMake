@@ -1,8 +1,11 @@
 #include "../add.h"
 
+#include <cassert>
 #include <iostream>
 
 int main() {
-	std::cout << add(1, 2) << std::endl;
+	int result = add(1, 2);
+	std::cout << result << std::endl;
+	assert(result == 3);
 	return 0;
 }

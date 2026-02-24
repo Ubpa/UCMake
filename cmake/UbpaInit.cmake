@@ -83,10 +83,33 @@ macro(Ubpa_InitProject)
   
   set("Ubpa_BuildTest_${PROJECT_NAME}" TRUE CACHE BOOL "build tests for ${PROJECT_NAME}")
 
+  # enable CTest
+  enable_testing()
+
   # create a custom target for building all tests
   if(NOT TARGET ${PROJECT_NAME}_BuildTests)
     add_custom_target(${PROJECT_NAME}_BuildTests)
     set_target_properties(${PROJECT_NAME}_BuildTests PROPERTIES FOLDER "${PROJECT_NAME}")
+  endif()
+
+  # create a custom target for running all tests (builds first, then runs ctest)
+  if(NOT TARGET ${PROJECT_NAME}_RunTests)
+    add_custom_target(${PROJECT_NAME}_RunTests
+      COMMAND ${CMAKE_CTEST_COMMAND} --build-config $<CONFIG> --output-on-failure
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Running all tests for ${PROJECT_NAME}..."
+      DEPENDS ${PROJECT_NAME}_BuildTests
+    )
+    set_target_properties(${PROJECT_NAME}_RunTests PROPERTIES FOLDER "${PROJECT_NAME}")
+  endif()
+
+  # create a custom target for install
+  if(NOT TARGET ${PROJECT_NAME}_Install)
+    add_custom_target(${PROJECT_NAME}_Install
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG> --target install
+      COMMENT "Installing ${PROJECT_NAME}..."
+    )
+    set_target_properties(${PROJECT_NAME}_Install PROPERTIES FOLDER "${PROJECT_NAME}")
   endif()
 
   if(NOT Ubpa_RootProjectPath)

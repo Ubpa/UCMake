@@ -19,4 +19,5 @@ void CallHelloCpp20(const T& obj) {
 
 int main() {
 	CallHelloCpp20(Cpp20{});
+	return 0;
 }

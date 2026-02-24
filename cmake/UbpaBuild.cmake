@@ -318,6 +318,14 @@ function(Ubpa_AddTarget)
       if(TARGET ${PROJECT_NAME}_BuildTests)
         add_dependencies(${PROJECT_NAME}_BuildTests ${targetName})
       endif()
+      # register as CTest test
+      if("${ARG_MODE}" STREQUAL "EXE")
+        add_test(
+          NAME ${targetName}
+          COMMAND ${targetName}
+          WORKING_DIRECTORY "${Ubpa_RootProjectPath}/bin"
+        )
+      endif()
     endif()
 
     # folder
