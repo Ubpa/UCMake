@@ -7,6 +7,11 @@
 #include <stdio.h>
 
 int main() {
-	printf("mul(2, 3): %d\n", mul(2, 3));
+	int result = mul(2, 3);
+	printf("mul(2, 3): %d\n", result);
+	if (result != 6) {
+		fprintf(stderr, "FAILED: expected 6, got %d\n", result);
+		return 1;
+	}
 	return 0;
 }
