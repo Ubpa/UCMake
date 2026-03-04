@@ -94,10 +94,15 @@ macro(Ubpa_InitProject)
 
   # create a custom target for running all tests (builds first, then runs ctest)
   if(NOT TARGET ${PROJECT_NAME}_RunTests)
+    include(ProcessorCount)
+    ProcessorCount(UBPA_PROCESSOR_COUNT)
+    if(UBPA_PROCESSOR_COUNT EQUAL 0)
+      set(UBPA_PROCESSOR_COUNT 4)
+    endif()
     add_custom_target(${PROJECT_NAME}_RunTests
-      COMMAND ${CMAKE_CTEST_COMMAND} --build-config $<CONFIG> --output-on-failure
+      COMMAND ${CMAKE_CTEST_COMMAND} -j${UBPA_PROCESSOR_COUNT} --build-config $<CONFIG> --output-on-failure
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-      COMMENT "Running all tests for ${PROJECT_NAME}..."
+      COMMENT "Running all tests for ${PROJECT_NAME} (parallel: ${UBPA_PROCESSOR_COUNT})..."
       DEPENDS ${PROJECT_NAME}_BuildTests
     )
     set_target_properties(${PROJECT_NAME}_RunTests PROPERTIES FOLDER "${PROJECT_NAME}")
