@@ -1,6 +1,5 @@
 {
   "roots": ["cmake"],
   "exclude": [],
-  "exclude_paths": [],
-  "doc_exclude_paths": [".codocs/README.md"]
+  "exclude_paths": []
 }
