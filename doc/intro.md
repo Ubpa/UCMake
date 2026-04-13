@@ -3,7 +3,7 @@
 ### 开头
 
 ```cmake
-cmake_minimum_required(VERSION 3.14 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project (<project-name> VERSION 1.2.3.4)
 # CMAKE_PROJECT_NAME
 # PROJECT_VERSION
@@ -488,7 +488,7 @@ target_link_libraries(<target>
   write_basic_package_version_file(
     "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
     VERSION ${PROJECT_VERSION}
-    COMPATIBILITY ExactVersion
+    COMPATIBILITY SameMinorVersion
   )
   
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
@@ -497,7 +497,21 @@ target_link_libraries(<target>
   )
   ```
 
-# 配合 VS
+# 配合 IDE
 
-- cmake -G "Visual Studio 16 2019" -A x64 -S ./ -B ./build
+### Visual Studio
 
+```bash
+# VS2019
+cmake -G "Visual Studio 16 2019" -A x64 -S ./ -B ./build
+
+# VS2022
+cmake -G "Visual Studio 17 2022" -A x64 -S ./ -B ./build
+```
+
+### 通用（Ninja，推荐）
+
+```bash
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -S ./ -B ./build
+cmake --build ./build
+```
