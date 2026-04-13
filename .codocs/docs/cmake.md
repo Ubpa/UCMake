@@ -1,6 +1,6 @@
 # cmake/
 
-UCMake 的 CMake 模块目录，提供统一的项目初始化、构建、包管理、下载和 Qt 集成能力。通常只需 `include(cmake/UbpaInit.cmake)` 即可拉入全部模块。
+UCMake 的 CMake 模块目录，提供统一的项目初始化、构建、包管理、下载和 Qt 集成能力。通常只需 `include(cmake/UbpaInit.cmake)` 即可拉入全部模块，再调用 `Ubpa_InitProject()` 完成项目全局配置。
 
 ## 索引
 
@@ -14,4 +14,4 @@ UCMake 的 CMake 模块目录，提供统一的项目初始化、构建、包管
 | UbpaGit.cmake | 文件 | Git 初始化和子模块更新 |
 | UbpaQt.cmake | 文件 | Qt5 集成（初始化、AUTOMOC/AUTOUIC/AUTORCC 开关、Windows DLL 安装） |
 | UbpaDoc.cmake | 文件 | Doxygen 文档构建辅助 |
-| CPM.cmake | 文件 | 第三方包管理器（CPM.cmake v0.27.2），基于 FetchContent 的包声明与缓存 |
+| CPM.cmake | 文件 | 第三方包管理器（CPM.cmake v0.42.1），基于 FetchContent 的包声明与缓存 |
