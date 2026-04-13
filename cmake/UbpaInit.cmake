@@ -1,6 +1,6 @@
 # 1. include all cmake files
 # 2. debug postfix
-# 3. C++ 20
+# 3. C++ standard (default 20)
 # 4. install prefix
 # 5. set Ubpa_BuildTest_${PROJECT_NAME}
 # 6. output directory
@@ -27,12 +27,18 @@ include("${CMAKE_CURRENT_LIST_DIR}/CPM.cmake")
 # ---------------------------------------------------------
 
 macro(Ubpa_InitProject)
+  cmake_parse_arguments("_INIT" "" "CXX_STANDARD" "" ${ARGN})
+
   set(CMAKE_DEBUG_POSTFIX "d")
   set(CMAKE_RELEASE_POSTFIX "")
   set(CMAKE_MINSIZEREL_POSTFIX "msr")
   set(CMAKE_RELWITHDEBINFO_POSTFIX "rd")
-  
-  set(CMAKE_CXX_STANDARD 20)
+
+  if(NOT "${_INIT_CXX_STANDARD}" STREQUAL "")
+    set(CMAKE_CXX_STANDARD ${_INIT_CXX_STANDARD})
+  else()
+    set(CMAKE_CXX_STANDARD 20)
+  endif()
   set(CMAKE_CXX_STANDARD_REQUIRED True)
 
   if(NOT CMAKE_BUILD_TYPE)

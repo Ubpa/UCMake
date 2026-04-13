@@ -36,8 +36,12 @@ include(UbpaInit)
 
 **方式三：find_package**
 
+安装 UCMake 后（或通过 `CMAKE_PREFIX_PATH` 指向安装目录）：
+
 ```cmake
 find_package(UCMake 0.7.3 REQUIRED)
+# 所有 Ubpa_* 宏已可用，直接初始化项目
+Ubpa_InitProject()
 ```
 
 ### 2. 初始化项目

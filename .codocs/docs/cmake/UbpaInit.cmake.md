@@ -10,10 +10,12 @@
 
 ## Ubpa_InitProject() 完成的配置
 
+**签名**：`Ubpa_InitProject([CXX_STANDARD <std>])`，`CXX_STANDARD` 默认 20。
+
 | 配置项 | 值 |
 |--------|----|
 | Debug/Release/MinSizeRel/RelWithDebInfo postfix | d / (空) / msr / rd |
-| C++ 标准 | C++20（required） |
+| C++ 标准 | 默认 C++20，可通过 `CXX_STANDARD` 覆盖（required） |
 | 默认 build type | Release（如未设置） |
 | 全局编译宏 | `UCMAKE_CONFIG_<CONFIG>`（大写） + `UCMAKE_CONFIG_POSTFIX="<postfix>"` |
 | 编译器最低版本 | Clang ≥ 10、GCC ≥ 10、MSVC ≥ 19.26（均以支持 concept 为门槛） |
