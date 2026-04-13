@@ -211,22 +211,16 @@ def install_hooks(project_root: Path):
     local_script = codocs_scripts_dir / "codocs.py"
     self_path = Path(__file__).resolve()
     if local_script.resolve() != self_path:  # avoid copying onto self
-        if local_script.exists():
-            skipped.append(".codocs/scripts/codocs.py")
-        else:
-            codocs_scripts_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(self_path, local_script)
-            installed.append(".codocs/scripts/codocs.py")
+        codocs_scripts_dir.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(self_path, local_script)
+        installed.append(".codocs/scripts/codocs.py")
 
-    # Copy README.md to .codocs/README.md
+    # Copy README.md to .codocs/README.md (always overwrite)
     readme_src = SKILL_DIR / "docs" / "README.md"
     readme_dst = project_root / ".codocs" / "README.md"
     if readme_src.exists():
-        if readme_dst.exists():
-            skipped.append(".codocs/README.md")
-        else:
-            shutil.copy2(readme_src, readme_dst)
-            installed.append(".codocs/README.md")
+        shutil.copy2(readme_src, readme_dst)
+        installed.append(".codocs/README.md")
 
     # Copy hooks
     if not hooks_src.exists():
@@ -238,12 +232,9 @@ def install_hooks(project_root: Path):
     for hook_file in sorted(hooks_src.iterdir()):
         if hook_file.is_file():
             dest = git_hooks_dir / hook_file.name
-            if dest.exists():
-                skipped.append(hook_file.name)
-            else:
-                shutil.copy2(hook_file, dest)
-                dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-                installed.append(hook_file.name)
+            shutil.copy2(hook_file, dest)
+            dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            installed.append(hook_file.name)
 
     return installed, skipped
 
