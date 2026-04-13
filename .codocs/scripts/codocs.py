@@ -218,6 +218,16 @@ def install_hooks(project_root: Path):
             shutil.copy2(self_path, local_script)
             installed.append(".codocs/scripts/codocs.py")
 
+    # Copy README.md to .codocs/README.md
+    readme_src = SKILL_DIR / "docs" / "README.md"
+    readme_dst = project_root / ".codocs" / "README.md"
+    if readme_src.exists():
+        if readme_dst.exists():
+            skipped.append(".codocs/README.md")
+        else:
+            shutil.copy2(readme_src, readme_dst)
+            installed.append(".codocs/README.md")
+
     # Copy hooks
     if not hooks_src.exists():
         return installed, skipped

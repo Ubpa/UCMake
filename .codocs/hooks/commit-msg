@@ -54,8 +54,8 @@ while IFS= read -r line; do
       if echo "$item" | grep -qE "^\[all\]"; then
         # Explicit global skip
         global_skip=true
-      elif echo "$item" | grep -qE "^\.codocs/"; then
-        # path-specific .codocs/ skip (Phase 3/4)
+      elif echo "$item" | grep -qE "^\.codocs/docs/"; then
+        # path-specific .codocs/docs/ skip (Phase 3/4)
         path=$(echo "$item" | sed 's/:.*//')
         skip_paths+=("$path")
       fi
@@ -82,7 +82,7 @@ if [ -f "$PENDING_FLAG" ]; then
     while IFS= read -r pending_file; do
       pending_file="${pending_file%$'\r'}"  # strip trailing \r (Windows CRLF)
       covered=false
-      codocs_path=".codocs/$pending_file.md"
+      codocs_path=".codocs/docs/$pending_file.md"
       for sp in "${skip_paths[@]}"; do
         if [ "$sp" = "$codocs_path" ]; then
           covered=true
@@ -100,15 +100,16 @@ if [ -f "$PENDING_FLAG" ]; then
       echo ""
       echo "  未覆盖："
       for p in "${uncovered_phase2[@]}"; do
-        echo "    $p  →  .codocs/$p.md"
+        echo "    $p  →  .codocs/docs/$p.md"
       done
       echo ""
       echo "  请 Read 对应 md 确认是否需要更新，然后："
+      echo "  ❓ 不熟悉 codocs 规范？先读 .codocs/README.md"
       echo "  - 需要更新 → 修改 md 后 git add，重新提交"
       echo "  - 确认不需要 → 在 commit message 加 codocs-skip（须写具体理由）："
       echo "    ## codocs-skip"
       for p in "${uncovered_phase2[@]}"; do
-        echo "    - .codocs/$p.md: <具体理由>"
+        echo "    - .codocs/docs/$p.md: <具体理由>"
       done
       if [ "$local_count" -gt 3 ]; then
         echo "    # 文件较多时也可用: - [all]: <理由>"
@@ -126,7 +127,7 @@ if [ -f "$PENDING_FLAG" ]; then
     echo "  - 需要更新 → 修改 md 后 git add，重新提交"
     echo "  - 确认不需要 → 在 commit message 加 codocs-skip（须写具体理由）："
     echo "    ## codocs-skip"
-    echo "    - .codocs/<文件路径>.md: <具体理由>"
+    echo "    - .codocs/docs/<文件路径>.md: <具体理由>"
     echo ""
   fi
 fi
@@ -159,6 +160,7 @@ if [ -f "$PARENT_SYNC_FLAG" ]; then
       done
       echo ""
       echo "  请 Read 上列 md 确认索引表是否需要更新，然后："
+      echo "  ❓ 不熟悉 codocs 规范？先读 .codocs/README.md"
       echo "  - 需要更新 → 修改 md 后 git add，重新提交"
       echo "  - 确认不需要 → 在 commit message 加 codocs-skip（须写具体理由）："
       echo "    ## codocs-skip"
@@ -199,6 +201,7 @@ if [ -f "$DEPS_FLAG" ] && [ -f "$DEPS_FILE" ]; then
     for p in "${uncovered_deps[@]}"; do echo "    $p"; done
     echo ""
     echo "  请 Read 上列 md 确认是否需要更新，然后："
+    echo "  ❓ 不熟悉 codocs 规范？先读 .codocs/README.md"
     echo "  - 需要更新 → 修改 md 后 git add，重新提交"
     echo "  - 确认不需要 → 在 commit message 加 codocs-skip（须写具体理由）："
     echo "    ## codocs-skip"

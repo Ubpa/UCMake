@@ -101,10 +101,10 @@ while IFS= read -r f; do
   done
 done <<< "$staged_files"
 
-# 检查是否有 .codocs/ 文档改动
+# 检查是否有 .codocs/docs/ 文档改动
 has_doc_change=false
 while IFS= read -r f; do
-  if [[ "$f" == .codocs/* ]] && [[ "$f" != .codocs/config.json ]]; then
+  if [[ "$f" == .codocs/docs/* ]]; then
     has_doc_change=true
     break
   fi
@@ -120,20 +120,21 @@ if [ ${#managed_code_files[@]} -gt 0 ] && [ "$has_doc_change" = false ]; then
   echo ""
   echo "  改动文件："
   for f in "${managed_code_files[@]}"; do
-    echo "    $f  →  .codocs/$f.md"
+    echo "    $f  →  .codocs/docs/$f.md"
   done
   echo ""
-  echo "  ✅ 选项 A（推荐）：更新文档后 git add 对应的 .codocs/ 文件"
+  echo "  ✅ 选项 A（推荐）：更新文档后 git add 对应的 .codocs/docs/ 文件"
   echo ""
   echo "  🔍 选项 B（审查后跳过）："
+  echo "     ❓ 不熟悉 codocs 文档规范？先读 .codocs/README.md"
   echo "     1. 逐一 Read 下列 md，确认描述仍与改动后的代码一致："
   for f in "${managed_code_files[@]}"; do
-    echo "        .codocs/$f.md"
+    echo "        .codocs/docs/$f.md"
   done
   echo "     2. 确认无需更新后，在 commit message 末尾写："
   echo "        ## codocs-skip"
   for f in "${managed_code_files[@]}"; do
-    echo "        - .codocs/$f.md: <具体理由>"
+    echo "        - .codocs/docs/$f.md: <具体理由>"
   done
   echo "     ⚠️  理由必须说明为何本次改动不影响文档（如\"仅修改注释格式\"）"
   echo "        禁止使用\"无需更新\"等笼统理由"
@@ -146,12 +147,12 @@ fi
 
 # ── Phase 3: 父目录 MD 同步检查 ─────────────────────────────────────────
 if [ "$(hook_enabled parent_sync)" = "1" ]; then
-# 找出已暂存的 .codocs/*.md 文件（排除 _notes/ 和 scripts/）
+# 找出已暂存的 .codocs/docs/*.md 文件（排除 _notes/ 和 scripts/）
 staged_doc_files=()
 while IFS= read -r f; do
-  if [[ "$f" =~ ^\.codocs/.*\.md$ ]] && \
-     [[ "$f" != .codocs/_notes/* ]] && \
-     [[ "$f" != .codocs/scripts/* ]]; then
+  if [[ "$f" =~ ^\.codocs/docs/.*\.md$ ]] && \
+     [[ "$f" != .codocs/docs/_notes/* ]] && \
+     [[ "$f" != .codocs/docs/scripts/* ]]; then
     staged_doc_files+=("$f")
   fi
 done <<< "$staged_files"
@@ -175,6 +176,7 @@ if [ ${#staged_doc_files[@]} -gt 0 ] && [ -f "$INIT_PY" ]; then
     echo "  ✅ 选项 A（推荐）：git add 上列父目录 MD"
     echo ""
     echo "  🔍 选项 B（审查后跳过）："
+    echo "     ❓ 不熟悉 codocs 文档规范？先读 .codocs/README.md"
     echo "     1. 逐一 Read 上列 md，确认其索引表仍与实际内容一致"
     echo "     2. 确认无需更新后，在 commit message 末尾写："
     echo "        ## codocs-skip"
@@ -239,7 +241,7 @@ PYEOF
     echo "     1. Read 上列需更新的 md，确认其描述仍与改动后的代码一致"
     echo "     2. 确认无需更新后，在 commit message 末尾写："
     echo "        ## codocs-skip"
-    echo "        - .codocs/<path>.md: <具体理由>"
+    echo "        - .codocs/docs/<path>.md: <具体理由>"
     echo "     ⚠️  理由必须说明为何本次改动不影响文档"
     echo "        禁止使用\"无需更新\"等笼统理由"
     echo ""
