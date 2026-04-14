@@ -3,11 +3,11 @@ codocs:
   schema: 1
   source_type: file
   source_path: infra/.codocs/hooks/pre-commit
-  source_hash: sha256:70e7865bce2b8dc8a3771b2fcd973b0d69c4ba74ca0d94b7367cc68f48733615
+  source_hash: sha256:55633b4c744490572671dff93b7e0fd2129010e5d38f759738d3c36fc8f90c4a
   explicit_deps: []
   dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   hash_mode: text-lf-sha256
-  verified_at: '2026-04-15T02:15:47.850211+08:00'
+  verified_at: '2026-04-15T02:25:42.590669+08:00'
 ---
 # infra/.codocs/hooks/pre-commit
 

@@ -3,11 +3,11 @@ codocs:
   schema: 1
   source_type: file
   source_path: infra/.codocs/codocs.py
-  source_hash: sha256:308a2948e070b2ad9cb1b64135a783b83f5be07ca85cf025c6cf696f1ebc9d0d
+  source_hash: sha256:6c6c79c4ab628d76734cbd09119a701528c08dbe034b8a49e71593c77d9a5bc6
   explicit_deps: []
   dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   hash_mode: text-lf-sha256
-  verified_at: '2026-04-15T02:15:47.850211+08:00'
+  verified_at: '2026-04-15T02:25:42.125576+08:00'
 ---
 # infra/.codocs/codocs.py
 

@@ -12,8 +12,16 @@ Ubpa_AddSubDirsRec(src)
 
 # Install infra/ (hook tooling: more-hooks, codocs, ucmake hooks)
 # Must live alongside cmake/ so UbpaInit.cmake can resolve ../infra
+# Use cmake -P script at install time to dereference symlinks
 set(_ucmake_pkg_name "${PROJECT_NAME}_${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}_${PROJECT_VERSION_PATCH}")
-install(DIRECTORY infra/ DESTINATION "${_ucmake_pkg_name}/infra")
+install(CODE "
+    file(INSTALL
+        \"${CMAKE_SOURCE_DIR}/infra/\"
+        DESTINATION \"\${CMAKE_INSTALL_PREFIX}/${_ucmake_pkg_name}/infra\"
+        USE_SOURCE_PERMISSIONS
+        FOLLOW_SYMLINK_CHAIN
+    )
+")
 
 Ubpa_Export(
   DIRECTORIES

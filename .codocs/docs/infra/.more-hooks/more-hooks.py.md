@@ -3,11 +3,11 @@ codocs:
   schema: 1
   source_type: file
   source_path: infra/.more-hooks/more-hooks.py
-  source_hash: sha256:3aa4d41953166b32063fa691792e395212426a678d4849d2a0ed470974f55bdd
+  source_hash: sha256:3f946f82fa7cb4b1f8e4ee95300ccaee76c8311e806a59b2021a0da9552b2205
   explicit_deps: []
   dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   hash_mode: text-lf-sha256
-  verified_at: '2026-04-15T02:15:47.850211+08:00'
+  verified_at: '2026-04-15T02:25:42.878820+08:00'
 ---
 # infra/.more-hooks/more-hooks.py
 
