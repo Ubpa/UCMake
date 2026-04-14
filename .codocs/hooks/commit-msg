@@ -2,9 +2,10 @@
 # codocs commit-msg hook (auto-installed by codocs init)
 #
 # Handles flags set by pre-commit:
-#   codocs_needs_doc_check   — code changed without doc change (Phase 2)
-#   codocs_needs_parent_sync — .codocs/ MD changed without parent MD sync (Phase 3)
-#   codocs_needs_dep_check   — dependency docs not updated (Phase 4)
+#   codocs_needs_doc_check        — code changed without doc change (Phase 2)
+#   codocs_needs_parent_sync      — .codocs/ MD changed without parent MD sync (Phase 3)
+#   codocs_needs_dep_check        — dependency docs not updated (Phase 4)
+#   codocs_needs_stale_dir_check  — directory doc content hash is stale (STALE_DIR)
 #
 # Skip syntax in commit message (Markdown section):
 #
@@ -23,11 +24,13 @@ PARENT_SYNC_FLAG="${TMPDIR:-/tmp}/codocs_needs_parent_sync"
 MISSING_PARENTS="${TMPDIR:-/tmp}/codocs_missing_parents"
 DEPS_FLAG="${TMPDIR:-/tmp}/codocs_needs_dep_check"
 DEPS_FILE="${TMPDIR:-/tmp}/codocs_missing_deps"
+STALE_DIR_FLAG="${TMPDIR:-/tmp}/codocs_needs_stale_dir_check"
+STALE_DIR_FILE="${TMPDIR:-/tmp}/codocs_stale_dir_paths"
 
-trap 'rm -f "$DEPS_FLAG" "$DEPS_FILE"' EXIT
+trap 'rm -f "$DEPS_FLAG" "$DEPS_FILE" "$STALE_DIR_FLAG" "$STALE_DIR_FILE"' EXIT
 
 # All flags absent → nothing to check
-if [ ! -f "$PENDING_FLAG" ] && [ ! -f "$PARENT_SYNC_FLAG" ] && [ ! -f "$DEPS_FLAG" ]; then
+if [ ! -f "$PENDING_FLAG" ] && [ ! -f "$PARENT_SYNC_FLAG" ] && [ ! -f "$DEPS_FLAG" ] && [ ! -f "$STALE_DIR_FLAG" ]; then
   exit 0
 fi
 
@@ -67,6 +70,7 @@ done <<< "$commit_msg"
 # Global skip → clear all flags and pass
 if [ "$global_skip" = true ]; then
   rm -f "$PENDING_FLAG" "$PENDING_FILES" "$PARENT_SYNC_FLAG" "$MISSING_PARENTS"
+  # STALE_DIR_FLAG and STALE_DIR_FILE cleaned by trap on exit 0
   exit 0
 fi
 
@@ -159,7 +163,7 @@ if [ -f "$PARENT_SYNC_FLAG" ]; then
         echo "    $p"
       done
       echo ""
-      echo "  请 Read 上列 md 确认索引表是否需要更新，然后："
+      echo "  请 Read 上列 md 确认文档内容（架构说明、设计决策、索引表等）是否需要更新，然后："
       echo "  ❓ 不熟悉 codocs 规范？先读 .codocs/README.md"
       echo "  - 需要更新 → 修改 md 后 git add，重新提交"
       echo "  - 确认不需要 → 在 commit message 加 codocs-skip（须写具体理由）："
@@ -207,6 +211,50 @@ if [ -f "$DEPS_FLAG" ] && [ -f "$DEPS_FILE" ]; then
     echo "    ## codocs-skip"
     for p in "${uncovered_deps[@]}"; do echo "    - $p: <具体理由>"; done
     if [ "$dep_count" -gt 3 ]; then
+      echo "    # 文件较多时也可用: - [all]: <理由>"
+    fi
+    echo ""
+  fi
+fi
+
+# ── Check 4: codocs_needs_stale_dir_check (STALE_DIR soft warning) ──────────
+if [ -f "$STALE_DIR_FLAG" ] && [ -f "$STALE_DIR_FILE" ]; then
+  uncovered_stale_dirs=()
+  while IFS= read -r stale_line; do
+    stale_line="${stale_line%$'\r'}"
+    # Extract MD path from line like: [STALE_DIR]  .codocs/docs/src.md  (reason)
+    md_path=$(echo "$stale_line" | sed 's/^\[STALE_DIR\][[:space:]]*//' | awk '{print $1}')
+    covered=false
+    for sp in "${skip_paths[@]}"; do
+      if [ "$sp" = "$md_path" ]; then covered=true; break; fi
+    done
+    [ "$covered" = false ] && uncovered_stale_dirs+=("$stale_line")
+  done < "$STALE_DIR_FILE"
+
+  if [ ${#uncovered_stale_dirs[@]} -gt 0 ]; then
+    block=true
+    stale_dir_count=${#uncovered_stale_dirs[@]}
+    echo ""
+    echo "[codocs] ❌ 目录文档已过期（STALE_DIR），需审查后跳过或刷新"
+    echo ""
+    echo "  未覆盖："
+    for line in "${uncovered_stale_dirs[@]}"; do echo "    $line"; done
+    echo ""
+    echo "  ⚠️  目录文档不只是索引——还应包含架构说明、设计决策、模块关系等内容。"
+    echo "  请 Read 上列 md，确认文档内容（不只是索引表）是否仍准确。"
+    echo ""
+    echo "  选项 A（推荐）：审查并刷新哈希"
+    echo "    python .codocs/scripts/codocs.py . review-stale <md-path>"
+    echo "    python .codocs/scripts/codocs.py . refresh-hash <md-path>"
+    echo ""
+    echo "  选项 B（审查后跳过）："
+    echo "    在 commit message 末尾写："
+    echo "    ## codocs-skip"
+    for line in "${uncovered_stale_dirs[@]}"; do
+      md=$(echo "$line" | sed 's/^\[STALE_DIR\][[:space:]]*//' | awk '{print $1}')
+      echo "    - $md: <具体理由（须说明文档内容不受影响）>"
+    done
+    if [ "$stale_dir_count" -gt 3 ]; then
       echo "    # 文件较多时也可用: - [all]: <理由>"
     fi
     echo ""

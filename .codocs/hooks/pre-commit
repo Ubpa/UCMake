@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # codocs pre-commit hook (auto-installed by codocs init)
-# Phase 1: codocs lint — ORPHAN/MISSING 检查，有问题直接拦截
+# Phase 1: codocs lint — ORPHAN/MISSING/STALE_FILE 硬拦截；STALE_DIR 软警告
 # Phase 2: 检测受管控的代码文件改动时，若无对应 .codocs/ 文档改动，设标记（不拦截）
 # Phase 3: 检测已暂存的 .codocs/ MD 改动，若其父目录 MD 未同步更新，设标记（不拦截）
 
@@ -42,9 +42,14 @@ PYEOF
 
 DEPS_FLAG="${TMPDIR:-/tmp}/codocs_needs_dep_check"
 DEPS_FILE="${TMPDIR:-/tmp}/codocs_missing_deps"
+STALE_DIR_FLAG="${TMPDIR:-/tmp}/codocs_needs_stale_dir_check"
+STALE_DIR_FILE="${TMPDIR:-/tmp}/codocs_stale_dir_paths"
 
 # ── Shared variables (needed by multiple phases) ──────────────────────────
-INIT_PY="$ROOT/.codocs/scripts/codocs.py"
+# Self-locate codocs.py: resolve symlink → .codocs/hooks/pre-commit
+# → two dirname levels up → .codocs/ → codocs.py
+_hook_self="$(readlink -f "$0")"
+INIT_PY="$(dirname "$(dirname "$_hook_self")")/codocs.py"
 
 # 获取暂存文件列表（Phase 2/3/4 均需要）
 staged_files=$(git diff --cached --name-only --diff-filter=ACMRT)
@@ -53,7 +58,7 @@ if [ -z "$staged_files" ]; then
   exit 0
 fi
 
-# ── Phase 1: codocs lint（ORPHAN / MISSING 检查） ──────────────────────────
+# ── Phase 1: codocs lint（ORPHAN / MISSING / STALE_FILE 硬拦截；STALE_DIR 软警告） ──
 if [ "$(hook_enabled lint)" = "1" ]; then
 
 if [ -f "$INIT_PY" ]; then
@@ -62,14 +67,43 @@ if [ -f "$INIT_PY" ]; then
   lint_rc=$?
   set -e
 
-  if [ $lint_rc -ne 0 ]; then
+  # Hard failures: STALE_FILE, MISSING, ORPHAN, CONFIG
+  has_hard_failure=false
+  if echo "$lint_output" | grep -qE '\[(STALE_FILE|MISSING|ORPHAN|CONFIG)\]'; then
+    has_hard_failure=true
+  fi
+
+  if [ "$has_hard_failure" = "true" ]; then
     echo ""
-    echo "[codocs] lint: 发现文档质量问题，提交已拦截"
+    echo "[codocs] ❌ lint 发现问题，提交已拦截"
     echo ""
-    echo "$lint_output"
+    echo "$lint_output" | grep -E '\[(STALE_FILE|MISSING|ORPHAN|CONFIG)\]' || true
     echo ""
+    if echo "$lint_output" | grep -q '\[STALE_FILE\]'; then
+      echo "  文档哈希已过期，请审查后刷新："
+      echo "    python .codocs/codocs.py . review-stale <md-path>"
+      echo "    python .codocs/codocs.py . refresh-hash <md-path>"
+      echo ""
+    fi
     echo "请修复以上问题后重新提交，或使用 git commit --no-verify 跳过"
     exit 1
+  fi
+
+  # Soft warnings: STALE_DIR
+  rm -f "$STALE_DIR_FLAG" "$STALE_DIR_FILE"
+
+  if echo "$lint_output" | grep -q '\[STALE_DIR\]'; then
+    echo "$lint_output" | grep '\[STALE_DIR\]' > "$STALE_DIR_FILE"
+    touch "$STALE_DIR_FLAG"
+
+    echo ""
+    echo "[codocs] ⚠️  目录文档已过期（STALE_DIR），子文档有变化，建议审查目录文档内容："
+    echo "$lint_output" | grep '\[STALE_DIR\]'
+    echo ""
+    echo "  目录文档不只是索引，还应包含架构说明、设计决策等。请审查后刷新哈希："
+    echo "    python .codocs/codocs.py . review-stale <md-path>"
+    echo "    python .codocs/codocs.py . refresh-hash <md-path>"
+    echo ""
   fi
 fi
 fi
@@ -151,7 +185,6 @@ if [ "$(hook_enabled parent_sync)" = "1" ]; then
 staged_doc_files=()
 while IFS= read -r f; do
   if [[ "$f" =~ ^\.codocs/docs/.*\.md$ ]] && \
-     [[ "$f" != .codocs/docs/_notes/* ]] && \
      [[ "$f" != .codocs/docs/scripts/* ]]; then
     staged_doc_files+=("$f")
   fi
@@ -177,11 +210,11 @@ if [ ${#staged_doc_files[@]} -gt 0 ] && [ -f "$INIT_PY" ]; then
     echo ""
     echo "  🔍 选项 B（审查后跳过）："
     echo "     ❓ 不熟悉 codocs 文档规范？先读 .codocs/README.md"
-    echo "     1. 逐一 Read 上列 md，确认其索引表仍与实际内容一致"
+    echo "     1. 逐一 Read 上列 md，确认文档内容（架构说明、设计决策、索引表等）仍准确"
     echo "     2. 确认无需更新后，在 commit message 末尾写："
     echo "        ## codocs-skip"
     while IFS= read -r p; do echo "        - $p: <具体理由>"; done <<< "$missing_parents"
-    echo "     ⚠️  理由必须说明为何索引表不受影响（如\"未新增/删除/改名文件\"）"
+    echo "     ⚠️  理由必须说明为何本次改动不影响该文档内容（如\"未新增/删除/改名文件，架构描述未变\"）"
     echo "        禁止使用\"无需更新\"等笼统理由"
     echo ""
   else

@@ -3,11 +3,11 @@ codocs:
   schema: 1
   source_type: file
   source_path: infra/.codocs/hooks/commit-msg
-  source_hash: sha256:21db21b02511410d523a8a1d7b4a22e5245256788c6c8526a7eb5084c5423582
+  source_hash: sha256:db868c9ad13ed7a4dc63e290601285ab6e61688bd27fae77ace415e5a0675a8d
   explicit_deps: []
   dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   hash_mode: text-lf-sha256
-  verified_at: '2026-04-15T02:25:42.325309+08:00'
+  verified_at: '2026-04-15T02:35:40.076630+08:00'
 ---
 # infra/.codocs/hooks/commit-msg
 
