@@ -8,6 +8,9 @@
 
 message(STATUS "include UbpaInit.cmake")
 
+# capture list dir at include time (CMAKE_CURRENT_LIST_DIR changes inside macros)
+set(UBPA_UCMAKE_LIST_DIR "${CMAKE_CURRENT_LIST_DIR}")
+
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaBasic.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaBuild.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/UbpaDownload.cmake")
@@ -126,6 +129,24 @@ macro(Ubpa_InitProject)
     )
     set_target_properties(${PROJECT_NAME}_Check PROPERTIES FOLDER "${PROJECT_NAME}")
   endif()
+
+  # generate a pre-commit hook script into <source_dir>/.cmake/hooks/pre-commit
+  # this file is a build artifact (not tracked by git) that users can register
+  # with their hook framework of choice, e.g.:
+  #   python .more-hooks/more-hooks.py register . \
+  #     --hook pre-commit --id <project>-ci --script .cmake/hooks/pre-commit --symlink
+  string(TOLOWER "${PROJECT_NAME}" PROJECT_NAME_LOWER)
+  set(UCMAKE_DEFAULT_CONFIG "Release")
+  set(_hook_template "${UBPA_UCMAKE_LIST_DIR}/hooks/pre-commit.in")
+  set(_hook_output "${CMAKE_SOURCE_DIR}/.ucmake/hooks/pre-commit")
+  if(EXISTS "${_hook_template}")
+    configure_file("${_hook_template}" "${_hook_output}" @ONLY NEWLINE_STYLE LF)
+    # generate .gitignore to prevent build artifacts from being tracked
+    file(WRITE "${CMAKE_SOURCE_DIR}/.ucmake/.gitignore" "*\n")
+    message(STATUS "[UCMake] Generated hook: ${_hook_output}")
+  endif()
+  unset(_hook_template)
+  unset(_hook_output)
 
   # create a custom target for install
   if(NOT TARGET ${PROJECT_NAME}_Install)

@@ -49,3 +49,20 @@ codocs:
 - 本文件是 macro，变量作用在调用方 scope，与 function 不同——`set()` 直接影响外部。
 - `Ubpa_BuildTest_<PROJECT>` cache 变量控制 TEST 目标是否构建，默认 TRUE。
 - USE_FOLDERS 全局开启，确保 IDE 中 target 按 folder 分组展示。
+- `UBPA_UCMAKE_LIST_DIR` 在 include 时捕获 UCMake 安装目录，用于 macro 内定位 hook 模板。
+
+## 自动生成的 hook
+
+`Ubpa_InitProject()` 在 cmake configure 时将 `cmake/hooks/pre-commit.in` 展开为：
+
+```
+${CMAKE_SOURCE_DIR}/.ucmake/hooks/pre-commit
+```
+
+同时生成 `.ucmake/.gitignore`（内容 `*`），防止产物进 git。生成的 hook 默认不生效，用户自行注册：
+
+```bash
+python .more-hooks/more-hooks.py register . \
+  --hook pre-commit --id <project>-ci \
+  --script .ucmake/hooks/pre-commit --priority 80 --symlink
+```
