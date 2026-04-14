@@ -99,12 +99,13 @@ macro(Ubpa_InitProject)
   endif()
 
   # create a custom target for running all tests (builds first, then runs ctest)
+  include(ProcessorCount)
+  ProcessorCount(UBPA_PROCESSOR_COUNT)
+  if(UBPA_PROCESSOR_COUNT EQUAL 0)
+    set(UBPA_PROCESSOR_COUNT 4)
+  endif()
+
   if(NOT TARGET ${PROJECT_NAME}_RunTests)
-    include(ProcessorCount)
-    ProcessorCount(UBPA_PROCESSOR_COUNT)
-    if(UBPA_PROCESSOR_COUNT EQUAL 0)
-      set(UBPA_PROCESSOR_COUNT 4)
-    endif()
     add_custom_target(${PROJECT_NAME}_RunTests
       COMMAND ${CMAKE_CTEST_COMMAND} -j${UBPA_PROCESSOR_COUNT} --build-config $<CONFIG> --output-on-failure
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
@@ -112,6 +113,18 @@ macro(Ubpa_InitProject)
       DEPENDS ${PROJECT_NAME}_BuildTests
     )
     set_target_properties(${PROJECT_NAME}_RunTests PROPERTIES FOLDER "${PROJECT_NAME}")
+  endif()
+
+  # create a check target: rebuilds all test binaries then runs ctest
+  # (unlike RunTests, this uses cmake --build to force MSBuild to recompile changed sources)
+  if(NOT TARGET ${PROJECT_NAME}_check)
+    add_custom_target(${PROJECT_NAME}_check
+      COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG> --target ${PROJECT_NAME}_BuildTests
+      COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIG> -j${UBPA_PROCESSOR_COUNT} --output-on-failure
+      WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+      COMMENT "Building tests and running ctest for ${PROJECT_NAME}..."
+    )
+    set_target_properties(${PROJECT_NAME}_check PROPERTIES FOLDER "${PROJECT_NAME}")
   endif()
 
   # create a custom target for install
