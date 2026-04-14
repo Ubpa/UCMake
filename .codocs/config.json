@@ -1,5 +1,5 @@
 {
-  "roots": ["cmake"],
+  "roots": ["cmake", "infra"],
   "exclude": [],
   "exclude_paths": []
 }
