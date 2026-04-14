@@ -1,3 +1,14 @@
+---
+codocs:
+  schema: 1
+  source_type: file
+  source_path: cmake/UbpaInit.cmake
+  source_hash: sha256:2d9ba36cee0d5dd7d0d54b7891f5d0975b045c05b91d5a2f44470f045a1b5188
+  explicit_deps: []
+  dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  hash_mode: text-lf-sha256
+  verified_at: '2026-04-14T17:11:10.658413+08:00'
+---
 # UbpaInit.cmake
 
 项目初始化入口，`include` 本文件即可拉入所有 Ubpa CMake 模块，并调用 `Ubpa_InitProject()` 完成全局配置。

@@ -1,3 +1,14 @@
+---
+codocs:
+  schema: 1
+  source_type: file
+  source_path: cmake/UbpaGit.cmake
+  source_hash: sha256:34dfd13a7479bcc757334289b4110ecc88264683f68948ed650482982dac8b55
+  explicit_deps: []
+  dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  hash_mode: text-lf-sha256
+  verified_at: '2026-04-14T17:11:10.658413+08:00'
+---
 # UbpaGit.cmake
 
 Git 环境初始化和子模块更新工具。

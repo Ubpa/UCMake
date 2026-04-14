@@ -1,3 +1,14 @@
+---
+codocs:
+  schema: 1
+  source_type: file
+  source_path: cmake/UbpaDownload.cmake
+  source_hash: sha256:284dacbbd77eebd6425d63910bca38ab0f6346798472f346374f8a192b11f532
+  explicit_deps: []
+  dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  hash_mode: text-lf-sha256
+  verified_at: '2026-04-14T17:11:10.658413+08:00'
+---
 # UbpaDownload.cmake
 
 文件下载与 zip 解压工具模块，支持 hash 校验缓存（已存在且 hash 匹配则跳过下载）。

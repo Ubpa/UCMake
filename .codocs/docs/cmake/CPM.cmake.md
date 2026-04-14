@@ -1,3 +1,14 @@
+---
+codocs:
+  schema: 1
+  source_type: file
+  source_path: cmake/CPM.cmake
+  source_hash: sha256:f3a6dcc6a04ce9e7f51a127307fa4f699fb2bade357a8eb4c5b45df76e1dc6a5
+  explicit_deps: []
+  dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  hash_mode: text-lf-sha256
+  verified_at: '2026-04-14T17:11:10.658413+08:00'
+---
 # CPM.cmake
 
 第三方包管理器，版本 **0.42.1**（来自 [cpm-cmake/CPM.cmake](https://github.com/cpm-cmake/CPM.cmake)）。基于 CMake 内置的 `FetchContent` 封装，提供更简洁的包声明语法和版本冲突警告。

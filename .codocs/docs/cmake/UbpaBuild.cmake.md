@@ -1,3 +1,14 @@
+---
+codocs:
+  schema: 1
+  source_type: file
+  source_path: cmake/UbpaBuild.cmake
+  source_hash: sha256:e2fe4ff91bb98744d900580078a298ae7923a17f010053f6cf127d35aff4bf37
+  explicit_deps: []
+  dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  hash_mode: text-lf-sha256
+  verified_at: '2026-04-14T17:11:10.658413+08:00'
+---
 # UbpaBuild.cmake
 
 目标构建核心模块，提供统一的 `Ubpa_AddTarget` 函数，屏蔽 CMake 原生 API 的繁琐性。

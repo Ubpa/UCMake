@@ -1,3 +1,14 @@
+---
+codocs:
+  schema: 1
+  source_type: file
+  source_path: cmake/UbpaQt.cmake
+  source_hash: sha256:665659f6b532142ae8c39c2c17b5077d376ac8f6d30f203e6bc111082e8d7d0a
+  explicit_deps: []
+  dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  hash_mode: text-lf-sha256
+  verified_at: '2026-04-14T17:11:10.658413+08:00'
+---
 # UbpaQt.cmake
 
 Qt5 集成工具，封装 Qt 初始化、自动工具开关和 Windows DLL 安装。

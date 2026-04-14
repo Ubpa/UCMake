@@ -1,3 +1,14 @@
+---
+codocs:
+  schema: 1
+  source_type: dir
+  source_path: cmake
+  entries_hash: sha256:cb8e57f31028860f6fe4de534147cdf14c654243f739ad237b17c16a87347546
+  explicit_deps: []
+  dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  hash_mode: text-lf-sha256
+  verified_at: '2026-04-14T17:11:10.658413+08:00'
+---
 # cmake/
 
 UCMake 的 CMake 模块目录，提供统一的项目初始化、构建、包管理、下载和 Qt 集成能力。通常只需 `include(cmake/UbpaInit.cmake)` 即可拉入全部模块，再调用 `Ubpa_InitProject()` 完成项目全局配置。

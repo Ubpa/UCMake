@@ -26,7 +26,371 @@ import json
 import stat
 import shutil
 import fnmatch
+import hashlib
+import datetime
+import tempfile
 from pathlib import Path
+from urllib.parse import quote
+
+try:
+    import yaml as _yaml
+    _YAML_AVAILABLE = True
+except ImportError:
+    _YAML_AVAILABLE = False
+
+
+# ---------------------------------------------------------------------------
+# Front matter helpers
+# ---------------------------------------------------------------------------
+
+def parse_md_frontmatter(text: str) -> "tuple[dict | None, str]":
+    """Parse YAML front matter from Markdown text.
+
+    Returns (metadata_dict, body_text).
+    If no front matter, returns (None, full_text).
+    The body_text does NOT include the leading '---...---' block.
+    """
+    if not text.startswith("---"):
+        return None, text
+
+    # The opening '---' must be exactly on its own line
+    first_newline = text.find("\n")
+    if first_newline == -1:
+        return None, text
+    first_line = text[:first_newline].rstrip("\r")
+    if first_line != "---":
+        return None, text
+
+    # Find closing '---'
+    rest = text[first_newline + 1:]
+    closing = -1
+    for i, line in enumerate(rest.splitlines(keepends=True)):
+        stripped = line.rstrip("\r\n")
+        if stripped == "---":
+            closing = i
+            break
+
+    if closing == -1:
+        return None, text
+
+    lines = rest.splitlines(keepends=True)
+    yaml_lines = lines[:closing]
+    body_lines = lines[closing + 1:]
+
+    yaml_text = "".join(yaml_lines)
+    body_text = "".join(body_lines)
+
+    # Strip a single leading newline from body to avoid double blank line
+    if body_text.startswith("\n"):
+        body_text = body_text[1:]
+
+    if _YAML_AVAILABLE:
+        try:
+            metadata = _yaml.safe_load(yaml_text)
+        except Exception:
+            return None, text
+    else:
+        # Minimal fallback: just return raw string as metadata (not a dict)
+        return None, text
+
+    if not isinstance(metadata, dict):
+        return None, text
+
+    return metadata, body_text
+
+
+def render_md_frontmatter(metadata: dict, body: str) -> str:
+    """Render updated front matter back into a Markdown file.
+
+    Preserves body exactly. Returns the full file content as:
+        ---
+        <yaml>
+        ---
+        <body>
+    """
+    if _YAML_AVAILABLE:
+        yaml_text = _yaml.dump(metadata, allow_unicode=True, default_flow_style=False, sort_keys=False)
+    else:
+        raise RuntimeError("PyYAML is required for render_md_frontmatter")
+
+    # Ensure body doesn't start with blank line (avoid double blank after ---)
+    # Strip at most ONE leading newline to match parse_md_frontmatter's single-strip behavior.
+    body_out = body[1:] if body.startswith("\n") else body
+
+    return f"---\n{yaml_text}---\n{body_out}"
+
+
+# ---------------------------------------------------------------------------
+# Hashing
+# ---------------------------------------------------------------------------
+
+def normalize_text_bytes(data: bytes) -> bytes:
+    """Normalize CRLF to LF. Returns bytes."""
+    return data.replace(b"\r\n", b"\n")
+
+
+def compute_file_hash(path: Path) -> str:
+    """Compute sha256 hash of a file.
+    - For .md files: strip YAML front matter, hash only body (text-lf-sha256)
+    - For other files: hash full content with CRLF->LF normalization
+    Returns 'sha256:<hex>'.
+    Raises FileNotFoundError if path does not exist.
+    """
+    if not path.exists():
+        raise FileNotFoundError(f"File not found: {path}")
+
+    raw = path.read_bytes()
+
+    if path.suffix.lower() == ".md":
+        try:
+            text = raw.decode("utf-8")
+        except UnicodeDecodeError:
+            text = raw.decode("latin-1")
+        _, body = parse_md_frontmatter(text)
+        normalized = normalize_text_bytes(body.encode("utf-8"))
+    else:
+        normalized = normalize_text_bytes(raw)
+
+    digest = hashlib.sha256(normalized).hexdigest()
+    return f"sha256:{digest}"
+
+
+def compute_dependency_hash(project_root: Path, dep_paths: list[str]) -> str:
+    """Compute dep_hash from a list of dependency paths (relative to project_root).
+    Procedure: normalize paths, deduplicate, sort, compute per-file hash,
+    serialize as 'path\\0hash', concatenate, hash with sha256.
+    Returns 'sha256:<hex>'. Returns 'sha256:<hash-of-empty>' if dep_paths is empty.
+    Raises FileNotFoundError if any dependency path does not exist on disk.
+    """
+    normalized = list({p.replace("\\", "/") for p in dep_paths})
+    normalized.sort()
+
+    parts = []
+    for rel_path in normalized:
+        abs_path = project_root / rel_path
+        file_hash = compute_file_hash(abs_path)
+        parts.append(f"{rel_path}\x00{file_hash}")
+
+    payload = "".join(parts).encode("utf-8")
+    digest = hashlib.sha256(payload).hexdigest()
+    return f"sha256:{digest}"
+
+
+# Required fields shared by both source types
+_REQUIRED_COMMON = ("schema", "source_type", "source_path", "explicit_deps", "dep_hash", "hash_mode", "verified_at")
+_REQUIRED_FILE   = ("source_hash",)
+_REQUIRED_DIR    = ("entries_hash",)
+
+
+def validate_frontmatter(metadata: dict, source_type: str) -> "list[str]":
+    """Validate that all required fields are present and schema=1.
+
+    Returns a list of reason strings (empty list = valid).
+    source_type is 'file' or 'dir'.
+    """
+    reasons: list[str] = []
+
+    codocs = metadata.get("codocs")
+    if not isinstance(codocs, dict):
+        reasons.append("missing 'codocs' key in front matter")
+        return reasons
+
+    for field in _REQUIRED_COMMON:
+        if field not in codocs:
+            reasons.append(f"missing required field: codocs.{field}")
+
+    if source_type == "file":
+        for field in _REQUIRED_FILE:
+            if field not in codocs:
+                reasons.append(f"missing required field for file doc: codocs.{field}")
+    elif source_type == "dir":
+        for field in _REQUIRED_DIR:
+            if field not in codocs:
+                reasons.append(f"missing required field for dir doc: codocs.{field}")
+    else:
+        reasons.append(f"unknown source_type: {source_type!r}")
+
+    # Validate schema version
+    schema = codocs.get("schema")
+    if schema != 1:
+        reasons.append(f"schema must be 1 (got {schema!r})")
+
+    return reasons
+
+
+# ---------------------------------------------------------------------------
+# Staleness
+# ---------------------------------------------------------------------------
+
+def compute_entries_hash(codocs_docs_dir: Path, source_dir_rel: str) -> str:
+    """Compute entries_hash for a directory doc.
+
+    Hashes the direct child MD bodies under codocs_docs_dir / source_dir_rel.
+    - child file MD: F\\0<rel-md-path>\\0<sha256(md-body)>
+    - child subdir MD present: D\\0<rel-md-path>\\0<sha256(md-body)>
+    - child subdir MD absent: D\\0<subdir-name>
+    Records sorted lexicographically, joined with \\n, then sha256'd.
+    Returns 'sha256:<hex>'.
+
+    codocs_docs_dir: path to the .codocs/docs/ directory
+    source_dir_rel: path of source directory relative to project root (e.g. 'src/Runtime')
+    """
+    child_md_dir = codocs_docs_dir / source_dir_rel.replace("\\", "/")
+
+    if not child_md_dir.exists():
+        digest = hashlib.sha256(b"").hexdigest()
+        return f"sha256:{digest}"
+
+    records: list[str] = []
+
+    all_items = list(child_md_dir.iterdir())
+    # Names of direct subdirectories (used to detect "dir MD with sibling dir")
+    dir_names = {c.name for c in all_items if c.is_dir()}
+
+    for child in all_items:
+        if child.is_file() and child.suffix.lower() == ".md":
+            stem = child.stem  # e.g. "foo.cpp" or "Runtime"
+            # Directory docs: stem has no dot, OR there is a sibling directory with that name
+            is_dir_doc = ("." not in stem) or (stem in dir_names)
+            rel_path = str(child.relative_to(codocs_docs_dir)).replace("\\", "/")
+            body_hash = compute_file_hash(child)
+            prefix = "D" if is_dir_doc else "F"
+            records.append(f"{prefix}\x00{rel_path}\x00{body_hash}")
+        elif child.is_dir():
+            # Only add a D-absent record when there is NO sibling .md for this dir;
+            # if Runtime.md exists, it was already added in the file loop above.
+            subdir_md = child_md_dir / (child.name + ".md")
+            if not subdir_md.exists():
+                records.append(f"D\x00{child.name}")
+
+    records.sort()
+    payload = "\n".join(records).encode("utf-8")
+    digest = hashlib.sha256(payload).hexdigest()
+    return f"sha256:{digest}"
+
+
+def classify_file_doc_stale(
+    project_root: Path,
+    md_path: Path,
+) -> list[str]:
+    """Check if a file doc MD is stale. Returns list of reason strings (empty = fresh).
+
+    Reads the MD, validates front matter, computes current hashes, compares.
+    dep_hash is computed from explicit_deps only (implicit/rule-based deps not in scope for A3).
+    """
+    if not md_path.exists():
+        return ["metadata missing"]
+
+    try:
+        text = md_path.read_text(encoding="utf-8")
+    except Exception:
+        return ["metadata missing"]
+
+    meta, _ = parse_md_frontmatter(text)
+    if meta is None:
+        return ["metadata missing"]
+
+    reasons: list[str] = []
+
+    # Schema / field validation
+    schema_reasons = validate_frontmatter(meta, "file")
+    if schema_reasons:
+        reasons.append("schema outdated")
+        return reasons
+
+    codocs = meta["codocs"]
+    source_path_rel: str = codocs.get("source_path", "")
+    source_path = project_root / source_path_rel
+
+    # source_path existence
+    if not source_path.exists():
+        reasons.append("source_path not found")
+        return reasons
+
+    # source_hash check
+    try:
+        current_source_hash = compute_file_hash(source_path)
+        if current_source_hash != codocs.get("source_hash"):
+            reasons.append("source_hash mismatch")
+    except Exception as exc:
+        reasons.append(f"source hash error: {exc}")
+
+    # dep_hash check (explicit_deps only)
+    explicit_deps: list[str] = codocs.get("explicit_deps") or []
+    try:
+        current_dep_hash = compute_dependency_hash(project_root, explicit_deps)
+        if current_dep_hash != codocs.get("dep_hash"):
+            reasons.append("dep_hash mismatch")
+    except FileNotFoundError as exc:
+        reasons.append(f"dep file not found: {exc}")
+    except Exception as exc:
+        reasons.append(f"dep hash error: {exc}")
+
+    return reasons
+
+
+def classify_dir_doc_stale(
+    project_root: Path,
+    md_path: Path,
+) -> list[str]:
+    """Check if a directory doc MD is stale. Returns list of reason strings (empty = fresh).
+
+    Reads the MD, validates front matter, computes current hashes, compares.
+    dep_hash is computed from explicit_deps only.
+    """
+    if not md_path.exists():
+        return ["metadata missing"]
+
+    try:
+        text = md_path.read_text(encoding="utf-8")
+    except Exception:
+        return ["metadata missing"]
+
+    meta, _ = parse_md_frontmatter(text)
+    if meta is None:
+        return ["metadata missing"]
+
+    reasons: list[str] = []
+
+    # Schema / field validation
+    schema_reasons = validate_frontmatter(meta, "dir")
+    if schema_reasons:
+        reasons.append("schema outdated")
+        return reasons
+
+    codocs = meta["codocs"]
+    source_path_rel: str = codocs.get("source_path", "")
+    source_path = project_root / source_path_rel
+
+    # source_path existence (must be a directory)
+    if not source_path.exists():
+        reasons.append("source_path not found")
+        return reasons
+    if not source_path.is_dir():
+        reasons.append("source_path is not a directory")
+        return reasons
+
+    # entries_hash check
+    codocs_docs_dir = project_root / ".codocs" / "docs"
+    try:
+        current_entries_hash = compute_entries_hash(codocs_docs_dir, source_path_rel)
+        if current_entries_hash != codocs.get("entries_hash"):
+            reasons.append("entries_hash mismatch")
+    except Exception as exc:
+        reasons.append(f"entries hash error: {exc}")
+
+    # dep_hash check (explicit_deps only)
+    explicit_deps: list[str] = codocs.get("explicit_deps") or []
+    try:
+        current_dep_hash = compute_dependency_hash(project_root, explicit_deps)
+        if current_dep_hash != codocs.get("dep_hash"):
+            reasons.append("dep_hash mismatch")
+    except FileNotFoundError as exc:
+        reasons.append(f"dep file not found: {exc}")
+    except Exception as exc:
+        reasons.append(f"dep hash error: {exc}")
+
+    return reasons
 
 
 # ---------------------------------------------------------------------------
@@ -311,9 +675,10 @@ def lint(project_root: Path) -> int:
                     issues.append(("MISSING", str(md_path), "MD not found"))
 
     # Phase 2: check for ORPHAN (MD exists, source does not or is excluded)
+    all_codocs_mds = sorted(codocs_dir.rglob("*.md"))  # compute once, reused in Phase 5
     if get_lint_enabled(config, "orphan"):
         exclude_paths = config.get("exclude_paths", [])
-        for md_path in sorted(codocs_dir.rglob("*.md")):
+        for md_path in all_codocs_mds:
             rel_md = md_path.relative_to(codocs_dir)
 
             # Skip _notes/ and scripts/
@@ -435,7 +800,7 @@ def lint(project_root: Path) -> int:
     # Phase 4: validate codocs.json structure
     if get_lint_enabled(config, "config"):
         KNOWN_HOOKS = {"lint", "doc_change", "parent_sync", "dependencies"}
-        KNOWN_LINT  = {"missing", "orphan", "bloat", "config"}
+        KNOWN_LINT  = {"missing", "orphan", "bloat", "config", "stale"}
 
         hooks_val = config.get("hooks")
         if hooks_val is not None:
@@ -505,6 +870,47 @@ def lint(project_root: Path) -> int:
                                 if not up.exists():
                                     issues.append(("CONFIG", "codocs.json",
                                                    f"dependencies[{i}].update: path not found: {u}"))
+
+    # Phase 5: Stale checks (STALE_FILE, STALE_DIR)
+    if get_lint_enabled(config, "stale"):
+        # Build set of tracked MD paths (resolved)
+        tracked_md_set = {e[3].resolve() for e in entries}
+
+        if codocs_dir.exists():
+            for md_path in all_codocs_mds:
+                rel_md = md_path.relative_to(codocs_dir)
+                # Skip _notes/ and scripts/
+                if rel_md.parts[0] in ("_notes", "scripts"):
+                    continue
+                # Only check tracked MDs
+                if md_path.resolve() not in tracked_md_set:
+                    continue
+
+                # Determine source_type from front matter
+                try:
+                    text = md_path.read_text(encoding="utf-8")
+                    meta, _ = parse_md_frontmatter(text)
+                except Exception:
+                    meta = None
+
+                if meta is not None and isinstance(meta, dict) and "codocs" in meta:
+                    source_type = meta["codocs"].get("source_type", "file")
+                else:
+                    source_type = "file"  # no front matter → treat as stale file doc
+
+                try:
+                    rel = str(md_path.relative_to(project_root)).replace("\\", "/")
+                except ValueError:
+                    rel = str(md_path)
+
+                if source_type == "dir":
+                    reasons = classify_dir_doc_stale(project_root, md_path)
+                    if reasons:
+                        issues.append(("STALE_DIR", rel, "; ".join(reasons)))
+                else:
+                    reasons = classify_file_doc_stale(project_root, md_path)
+                    if reasons:
+                        issues.append(("STALE_FILE", rel, "; ".join(reasons)))
 
     if not issues:
         print("[codocs lint] OK no issues found")
@@ -620,15 +1026,679 @@ def check_deps(project_root: Path, staged_files: list[str]) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Entry point
+# Explain hash
 # ---------------------------------------------------------------------------
+
+def explain_hash(project_root: Path, md_path: Path) -> None:
+    """Print a human-readable hash breakdown for a given MD file.
+
+    Usage:
+        python codocs.py [project_root] --explain-hash .codocs/docs/src/Foo.cpp.md
+    """
+    try:
+        rel_display = str(md_path.relative_to(project_root)).replace("\\", "/")
+    except ValueError:
+        rel_display = str(md_path)
+
+    print(f"=== explain-hash: {rel_display} ===")
+    print()
+
+    if not md_path.exists():
+        print(f"ERROR: file not found: {md_path}")
+        return
+
+    try:
+        text = md_path.read_text(encoding="utf-8")
+    except Exception as exc:
+        print(f"ERROR: could not read file: {exc}")
+        return
+
+    meta, _ = parse_md_frontmatter(text)
+    if meta is None or not isinstance(meta, dict) or "codocs" not in meta:
+        print(f"ERROR: no codocs front matter found in {md_path.name}")
+        return
+
+    codocs = meta["codocs"]
+    source_type = codocs.get("source_type", "file")
+    source_path_rel = codocs.get("source_path", "")
+    source_path = project_root / source_path_rel
+
+    if source_type == "file":
+        print("Source:")
+        print(f"  source_type : file")
+        print(f"  source_path : {source_path_rel}")
+
+        stored_hash = codocs.get("source_hash", "<missing>")
+        print(f"  source_hash (stored)  : {stored_hash}")
+        try:
+            current_hash = compute_file_hash(source_path)
+        except Exception as exc:
+            current_hash = f"<error: {exc}>"
+        print(f"  source_hash (current) : {current_hash}")
+        if current_hash == stored_hash:
+            print("  status: MATCH")
+        else:
+            print("  status: MISMATCH")
+        print()
+
+        # Explicit deps
+        explicit_deps: list[str] = codocs.get("explicit_deps") or []
+        print("Explicit deps:")
+        if not explicit_deps:
+            print("  (none)")
+        else:
+            stored_dep_hash = codocs.get("dep_hash", "<missing>")
+            for dep_rel in explicit_deps:
+                dep_path = project_root / dep_rel
+                print(f"  {dep_rel}")
+                try:
+                    current_per_file = compute_file_hash(dep_path)
+                    print(f"    current file hash : {current_per_file}")
+                except Exception as exc:
+                    print(f"    current file hash : <error: {exc}>")
+            # Show overall dep_hash
+            try:
+                current_dep_hash = compute_dependency_hash(project_root, explicit_deps)
+            except Exception as exc:
+                current_dep_hash = f"<error: {exc}>"
+            print(f"  stored dep_hash  : {stored_dep_hash}")
+            print(f"  current dep_hash : {current_dep_hash}")
+            if current_dep_hash == stored_dep_hash:
+                print("  status: MATCH")
+            else:
+                print("  status: MISMATCH")
+        print()
+
+        # Stale reasons (built inline from already-computed values)
+        reasons: list[str] = []
+        if current_hash != stored_hash:
+            reasons.append("source_hash mismatch")
+        _stored_dep = codocs.get("dep_hash", "<missing>")
+        try:
+            _current_dep = compute_dependency_hash(project_root, explicit_deps)
+            if _current_dep != _stored_dep:
+                reasons.append("dep_hash mismatch")
+        except FileNotFoundError as exc:
+            reasons.append(f"dep file not found: {exc}")
+        except Exception as exc:
+            reasons.append(f"dep hash error: {exc}")
+
+    else:  # dir
+        print("Source:")
+        print(f"  source_type : dir")
+        print(f"  source_path : {source_path_rel}")
+        print()
+
+        print("Entries:")
+        stored_entries_hash = codocs.get("entries_hash", "<missing>")
+        codocs_docs_dir = project_root / ".codocs" / "docs"
+        try:
+            current_entries_hash = compute_entries_hash(codocs_docs_dir, source_path_rel)
+        except Exception as exc:
+            current_entries_hash = f"<error: {exc}>"
+
+        print(f"  entries_hash (stored)  : {stored_entries_hash}")
+        print(f"  entries_hash (current) : {current_entries_hash}")
+        if current_entries_hash == stored_entries_hash:
+            print("  status: MATCH")
+        else:
+            print("  status: MISMATCH")
+        print()
+
+        # Explicit deps
+        explicit_deps = codocs.get("explicit_deps") or []
+        print("Explicit deps:")
+        if not explicit_deps:
+            print("  (none)")
+        else:
+            stored_dep_hash = codocs.get("dep_hash", "<missing>")
+            for dep_rel in explicit_deps:
+                dep_path = project_root / dep_rel
+                print(f"  {dep_rel}")
+                try:
+                    current_per_file = compute_file_hash(dep_path)
+                    print(f"    current file hash : {current_per_file}")
+                except Exception as exc:
+                    print(f"    current file hash : <error: {exc}>")
+            try:
+                current_dep_hash = compute_dependency_hash(project_root, explicit_deps)
+            except Exception as exc:
+                current_dep_hash = f"<error: {exc}>"
+            print(f"  stored dep_hash  : {stored_dep_hash}")
+            print(f"  current dep_hash : {current_dep_hash}")
+            if current_dep_hash == stored_dep_hash:
+                print("  status: MATCH")
+            else:
+                print("  status: MISMATCH")
+        print()
+
+        # Stale reasons (built inline from already-computed values)
+        reasons = []
+        if current_entries_hash != stored_entries_hash:
+            reasons.append("entries_hash mismatch")
+        _stored_dep_dir = codocs.get("dep_hash", "<missing>")
+        try:
+            _current_dep_dir = compute_dependency_hash(project_root, explicit_deps)
+            if _current_dep_dir != _stored_dep_dir:
+                reasons.append("dep_hash mismatch")
+        except FileNotFoundError as exc:
+            reasons.append(f"dep file not found: {exc}")
+        except Exception as exc:
+            reasons.append(f"dep hash error: {exc}")
+
+    print("Stale reasons:")
+    if not reasons:
+        print("  (none)")
+    else:
+        for r in reasons:
+            print(f"  {r}")
+
+
+# ---------------------------------------------------------------------------
+# Review & Refresh
+# ---------------------------------------------------------------------------
+
+def find_git_root(start: Path) -> Path:
+    """Walk up from start to find the .git directory. Raises if not found."""
+    current = start.resolve()
+    while True:
+        if (current / ".git").exists():
+            return current
+        parent = current.parent
+        if parent == current:
+            raise FileNotFoundError(
+                ".git directory not found in any parent directory."
+            )
+        current = parent
+
+
+def get_state_dir(git_root: "Path | None", project_root: Path) -> Path:
+    """Return the directory to store codocs state files.
+
+    In a git repo, uses .git/.codocs-state/ (invisible to git, never committed).
+    Outside a git repo, falls back to .codocs/state/ to avoid creating stray .git/.
+    """
+    if git_root is not None:
+        return git_root / ".git" / ".codocs-state"
+    else:
+        return project_root / ".codocs" / "state"
+
+
+def get_receipt_path(state_dir: Path, md_path: Path, project_root: Path) -> Path:
+    """Return the receipt file path under state_dir.
+
+    Percent-encodes '/' so the full relative path is a single filename component,
+    avoiding collisions from path components that contain '__'.
+    Example: .codocs/docs/src/Foo.cpp.md -> %2Ecodocs%2Fdocs%2Fsrc%2FFoo.cpp.md.json
+    """
+    try:
+        rel_str = str(md_path.relative_to(project_root)).replace("\\", "/")
+    except ValueError:
+        rel_str = str(md_path).replace("\\", "/")
+    # Percent-encode '/' (and only '/') so the whole path is one filename
+    safe_name = quote(rel_str, safe="") + ".json"
+    return state_dir / safe_name
+
+
+def _compute_md_body_hash(md_path: Path) -> str:
+    """Compute sha256 of the MD body (front matter stripped)."""
+    text = md_path.read_text(encoding="utf-8")
+    _, body = parse_md_frontmatter(text)
+    normalized = normalize_text_bytes(body.encode("utf-8"))
+    digest = hashlib.sha256(normalized).hexdigest()
+    return f"sha256:{digest}"
+
+
+def write_receipt(state_dir: Path, project_root: Path, md_path: Path, stale_reasons: list) -> Path:
+    """Compute current hashes, write receipt JSON, return receipt path."""
+    text = md_path.read_text(encoding="utf-8")
+    meta, _ = parse_md_frontmatter(text)
+    codocs = meta["codocs"] if (meta and "codocs" in meta) else {}
+    source_type = codocs.get("source_type", "file")
+
+    source_path_rel = codocs.get("source_path", "")
+    explicit_deps = codocs.get("explicit_deps") or []
+
+    # Compute current hashes at review time
+    try:
+        source_hash_at_review = compute_file_hash(project_root / source_path_rel)
+    except Exception:
+        source_hash_at_review = None
+
+    try:
+        dep_hash_at_review = compute_dependency_hash(project_root, explicit_deps)
+    except Exception:
+        dep_hash_at_review = None
+
+    entries_hash_at_review = None
+    if source_type == "dir":
+        codocs_docs_dir = project_root / ".codocs" / "docs"
+        try:
+            entries_hash_at_review = compute_entries_hash(codocs_docs_dir, source_path_rel)
+        except Exception:
+            entries_hash_at_review = None
+
+    md_body_hash_at_review = _compute_md_body_hash(md_path)
+
+    # Derive md_path relative to project_root for storage
+    try:
+        md_rel_str = str(md_path.relative_to(project_root)).replace("\\", "/")
+    except ValueError:
+        md_rel_str = str(md_path).replace("\\", "/")
+
+    reviewed_at = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
+
+    receipt = {
+        "md_path": md_rel_str,
+        "reviewed_at": reviewed_at,
+        "stale_reasons": stale_reasons,
+        "source_hash_at_review": source_hash_at_review,
+        "dep_hash_at_review": dep_hash_at_review,
+        "entries_hash_at_review": entries_hash_at_review,
+        "md_body_hash_at_review": md_body_hash_at_review,
+    }
+
+    receipt_path = get_receipt_path(state_dir, md_path, project_root)
+    receipt_path.parent.mkdir(parents=True, exist_ok=True)
+    receipt_path.write_text(json.dumps(receipt, indent=2, ensure_ascii=False), encoding="utf-8")
+    return receipt_path
+
+
+def read_receipt(state_dir: Path, md_path: Path, project_root: Path) -> "dict | None":
+    """Read receipt JSON. Returns None if not found."""
+    receipt_path = get_receipt_path(state_dir, md_path, project_root)
+    if not receipt_path.exists():
+        return None
+    try:
+        text = receipt_path.read_text(encoding="utf-8")
+        return json.loads(text)
+    except Exception:
+        return None
+
+
+def review_stale(project_root: Path, md_path: Path) -> None:
+    """Implements the review-stale command."""
+    # Determine source type from front matter
+    try:
+        text = md_path.read_text(encoding="utf-8")
+        meta, body = parse_md_frontmatter(text)
+    except Exception as exc:
+        print(f"Error reading {md_path}: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    source_type = "file"
+    if meta and isinstance(meta, dict) and "codocs" in meta:
+        source_type = meta["codocs"].get("source_type", "file")
+
+    if source_type == "dir":
+        reasons = classify_dir_doc_stale(project_root, md_path)
+    else:
+        reasons = classify_file_doc_stale(project_root, md_path)
+
+    try:
+        rel_display = str(md_path.relative_to(project_root)).replace("\\", "/")
+    except ValueError:
+        rel_display = str(md_path)
+
+    print(f"=== review-stale: {rel_display} ===")
+    print()
+
+    if not reasons:
+        print("Not stale — no review needed.")
+        return
+
+    print("Stale reasons:")
+    for r in reasons:
+        print(f"  - {r}")
+    print()
+
+    print("--- Markdown body for review ---")
+    print(body if body is not None else "")
+    print("--- end ---")
+    print()
+
+    # Find git root and write receipt
+    try:
+        git_root = find_git_root(project_root)
+    except FileNotFoundError:
+        git_root = None
+
+    state_dir = get_state_dir(git_root, project_root)
+    receipt_path = write_receipt(state_dir, project_root, md_path, reasons)
+
+    try:
+        receipt_display = str(receipt_path.relative_to(project_root)).replace("\\", "/")
+    except ValueError:
+        receipt_display = str(receipt_path)
+
+    print(f"Review receipt stored at: {receipt_display}")
+
+
+def refresh_hash(project_root: Path, md_path: Path) -> None:
+    """Implements the refresh-hash command. Exits non-zero on failure."""
+    try:
+        git_root = find_git_root(project_root)
+    except FileNotFoundError:
+        git_root = None
+
+    state_dir = get_state_dir(git_root, project_root)
+    receipt = read_receipt(state_dir, md_path, project_root)
+    if receipt is None:
+        print(f"Error: no review receipt found for {md_path}. "
+              f"Run 'review-stale' first.", file=sys.stderr)
+        sys.exit(1)
+
+    # Read current MD
+    try:
+        text = md_path.read_text(encoding="utf-8")
+        meta, body = parse_md_frontmatter(text)
+    except Exception as exc:
+        print(f"Error reading {md_path}: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if meta is None or "codocs" not in meta:
+        print(f"Error: no codocs front matter in {md_path}", file=sys.stderr)
+        sys.exit(1)
+
+    codocs = meta["codocs"]
+    source_type = codocs.get("source_type", "file")
+    source_path_rel = codocs.get("source_path", "")
+    explicit_deps = codocs.get("explicit_deps") or []
+
+    # Check 1: MD body has not changed since review
+    current_body_hash = _compute_md_body_hash(md_path)
+    if current_body_hash != receipt.get("md_body_hash_at_review"):
+        print("Error: MD body has changed since review. "
+              "Run 'review-stale' again.", file=sys.stderr)
+        sys.exit(1)
+
+    # Check 2: source has not changed since review
+    try:
+        current_source_hash = compute_file_hash(project_root / source_path_rel)
+    except Exception as exc:
+        print(f"Error computing source hash: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if current_source_hash != receipt.get("source_hash_at_review"):
+        print("Error: source file has changed since review. "
+              "Run 'review-stale' again.", file=sys.stderr)
+        sys.exit(1)
+
+    # Check 3: dep has not changed since review
+    try:
+        current_dep_hash = compute_dependency_hash(project_root, explicit_deps)
+    except Exception as exc:
+        print(f"Error computing dep hash: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if current_dep_hash != receipt.get("dep_hash_at_review"):
+        print("Error: dependencies have changed since review. "
+              "Run 'review-stale' again.", file=sys.stderr)
+        sys.exit(1)
+
+    # Check 4 (dir only): entries have not changed since review
+    if source_type == "dir":
+        codocs_docs_dir = project_root / ".codocs" / "docs"
+        try:
+            current_entries_hash = compute_entries_hash(codocs_docs_dir, source_path_rel)
+        except Exception as exc:
+            print(f"Error computing entries hash: {exc}", file=sys.stderr)
+            sys.exit(1)
+
+        if current_entries_hash != receipt.get("entries_hash_at_review"):
+            print("Error: directory entries have changed since review. "
+                  "Run 'review-stale' again.", file=sys.stderr)
+            sys.exit(1)
+
+    # All checks passed — update front matter
+    codocs["source_hash"] = current_source_hash
+    codocs["dep_hash"] = current_dep_hash
+    if source_type == "dir":
+        codocs["entries_hash"] = current_entries_hash
+
+    verified_at = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
+    codocs["verified_at"] = verified_at
+
+    # Write updated MD atomically (prevents partial-write corruption)
+    new_text = render_md_frontmatter(meta, body)
+    tmp_fd, tmp_path = tempfile.mkstemp(dir=md_path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+            f.write(new_text)
+        os.replace(tmp_path, md_path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+    # Delete receipt
+    receipt_path = get_receipt_path(state_dir, md_path, project_root)
+    if receipt_path.exists():
+        receipt_path.unlink()
+
+    try:
+        rel_display = str(md_path.relative_to(project_root)).replace("\\", "/")
+    except ValueError:
+        rel_display = str(md_path)
+
+    print(f"Hash metadata updated: {rel_display}")
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap
+# ---------------------------------------------------------------------------
+
+def gen_hash(project_root: Path, mode: str | None, targets: list) -> None:
+    """Low-level hash computation for diagnostics.
+
+    mode: 'file' | 'dir' | 'deps'
+    targets: list of path arguments
+    """
+    if mode == "file":
+        if not targets:
+            print("Error: gen-hash file requires <path>", file=sys.stderr)
+            sys.exit(1)
+        file_path = Path(targets[0])
+        if not file_path.is_absolute():
+            file_path = project_root / targets[0]
+        try:
+            result = compute_file_hash(file_path)
+        except FileNotFoundError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            sys.exit(1)
+        print(result)
+
+    elif mode == "dir":
+        if not targets:
+            print("Error: gen-hash dir requires a <codocs-dir-path> argument", file=sys.stderr)
+            sys.exit(1)
+        # targets[0] is relative to project_root (e.g. '.codocs/docs/src')
+        codocs_docs_dir = project_root / ".codocs" / "docs"
+        dir_arg = targets[0].replace("\\", "/")
+        # Strip the '.codocs/docs/' prefix to get source_dir_rel
+        docs_prefix = ".codocs/docs/"
+        if dir_arg.startswith(docs_prefix):
+            source_dir_rel = dir_arg[len(docs_prefix):]
+        else:
+            # Interpret as absolute path under codocs/docs
+            source_dir_rel = dir_arg
+        try:
+            result = compute_entries_hash(codocs_docs_dir, source_dir_rel)
+        except FileNotFoundError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            sys.exit(1)
+        print(result)
+
+    elif mode == "deps":
+        # targets are dep paths relative to project root
+        try:
+            result = compute_dependency_hash(project_root, targets)
+        except FileNotFoundError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            sys.exit(1)
+        print(result)
+
+    elif mode is None:
+        print("Error: gen-hash requires a mode argument: file | dir | deps", file=sys.stderr)
+        sys.exit(1)
+
+    else:
+        print(f"Error: gen-hash unknown mode '{mode}'. Use: file | dir | deps", file=sys.stderr)
+        sys.exit(1)
+
+
+def bootstrap_meta(project_root: Path) -> None:
+    """One-shot migration: inject schema-1 front matter into all tracked codocs MDs.
+
+    Idempotent: MDs that already have valid schema-1 metadata are skipped.
+    Body text is never modified.
+    Prints summary: [bootstrap-meta] seeded N / skipped M / errors E
+    """
+    config = load_config(project_root)
+    entries = scan(project_root, config)
+
+    seeded = 0
+    skipped = 0
+    errors = 0
+
+    now = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
+
+    for _, is_dir, source_path, md_path, _ in entries:
+        if not md_path.exists():
+            # No MD to bootstrap; skip silently
+            continue
+
+        # Skip _notes/
+        codocs_docs_dir = project_root / ".codocs" / "docs"
+        try:
+            rel_md = md_path.relative_to(codocs_docs_dir)
+            if rel_md.parts and rel_md.parts[0] == "_notes":
+                continue
+        except ValueError:
+            pass
+
+        # Read current content
+        try:
+            text = md_path.read_text(encoding="utf-8")
+        except Exception as exc:
+            print(f"[bootstrap-meta] WARN: could not read {md_path}: {exc}", file=sys.stderr)
+            errors += 1
+            continue
+
+        # Parse existing front matter
+        meta, body = parse_md_frontmatter(text)
+
+        # Check idempotency: valid schema-1 metadata already present?
+        source_type = "dir" if is_dir else "file"
+        if meta is not None and isinstance(meta, dict) and "codocs" in meta:
+            reasons = validate_frontmatter(meta, source_type)
+            if not reasons:
+                skipped += 1
+                continue
+
+        # Source file/dir must exist
+        if not source_path.exists():
+            print(f"[bootstrap-meta] WARN: source not found for {md_path.name}, skipping",
+                  file=sys.stderr)
+            errors += 1
+            continue
+
+        # Compute source_path relative to project_root (forward slashes)
+        try:
+            source_rel = str(source_path.relative_to(project_root)).replace("\\", "/")
+        except ValueError:
+            source_rel = str(source_path).replace("\\", "/")
+
+        # Compute hashes
+        try:
+            dep_hash = compute_dependency_hash(project_root, [])
+        except Exception as exc:
+            print(f"[bootstrap-meta] WARN: dep_hash error for {md_path.name}: {exc}",
+                  file=sys.stderr)
+            errors += 1
+            continue
+
+        if is_dir:
+            try:
+                entries_hash = compute_entries_hash(codocs_docs_dir, source_rel)
+            except Exception as exc:
+                print(f"[bootstrap-meta] WARN: entries_hash error for {md_path.name}: {exc}",
+                      file=sys.stderr)
+                errors += 1
+                continue
+
+            new_codocs = {
+                "schema": 1,
+                "source_type": "dir",
+                "source_path": source_rel,
+                "entries_hash": entries_hash,
+                "explicit_deps": [],
+                "dep_hash": dep_hash,
+                "hash_mode": "text-lf-sha256",
+                "verified_at": now,
+            }
+        else:
+            try:
+                source_hash = compute_file_hash(source_path)
+            except Exception as exc:
+                print(f"[bootstrap-meta] WARN: source_hash error for {md_path.name}: {exc}",
+                      file=sys.stderr)
+                errors += 1
+                continue
+
+            new_codocs = {
+                "schema": 1,
+                "source_type": "file",
+                "source_path": source_rel,
+                "source_hash": source_hash,
+                "explicit_deps": [],
+                "dep_hash": dep_hash,
+                "hash_mode": "text-lf-sha256",
+                "verified_at": now,
+            }
+
+        # Build new metadata (preserve any existing non-codocs keys)
+        if meta is None or not isinstance(meta, dict):
+            new_meta = {"codocs": new_codocs}
+        else:
+            new_meta = dict(meta)
+            new_meta["codocs"] = new_codocs
+
+        # (body already equals text when parse_md_frontmatter returns meta=None)
+
+        # Write atomically
+        new_text = render_md_frontmatter(new_meta, body)
+        tmp_fd, tmp_path = tempfile.mkstemp(dir=md_path.parent, suffix=".tmp")
+        try:
+            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
+                f.write(new_text)
+            os.replace(tmp_path, md_path)
+        except Exception as exc:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            print(f"[bootstrap-meta] WARN: write error for {md_path.name}: {exc}",
+                  file=sys.stderr)
+            errors += 1
+            continue
+
+        seeded += 1
+
+    print(f"[bootstrap-meta] seeded {seeded} / skipped {skipped} / errors {errors}")
+
+
+
 
 if __name__ == "__main__":
     args = sys.argv[1:]
     do_lint = "--lint" in args
     do_parent_sync = "--parent-sync" in args
     do_check_deps = "--check-deps" in args
-    args = [a for a in args if a not in ("--lint", "--parent-sync", "--check-deps")]
+    do_explain_hash = "--explain-hash" in args
+    args = [a for a in args if a not in ("--lint", "--parent-sync", "--check-deps", "--explain-hash")]
 
     if args:
         root = Path(args[0]).resolve()
@@ -656,5 +1726,29 @@ if __name__ == "__main__":
         staged = args[1:]
         count = check_deps(root, staged)
         sys.exit(min(count, 125))
+    elif do_explain_hash:
+        md_rel = args[1] if len(args) > 1 else None
+        if not md_rel:
+            print("Error: --explain-hash requires a <md-path> argument", file=sys.stderr)
+            sys.exit(1)
+        explain_hash(root, root / md_rel)
+    elif len(args) >= 2 and args[1] == "review-stale":
+        md_rel = args[2] if len(args) > 2 else None
+        if not md_rel:
+            print("Error: review-stale requires a <md-path> argument", file=sys.stderr)
+            sys.exit(1)
+        review_stale(root, root / md_rel)
+    elif len(args) >= 2 and args[1] == "refresh-hash":
+        md_rel = args[2] if len(args) > 2 else None
+        if not md_rel:
+            print("Error: refresh-hash requires a <md-path> argument", file=sys.stderr)
+            sys.exit(1)
+        refresh_hash(root, root / md_rel)
+    elif len(args) >= 2 and args[1] == "gen-hash":
+        mode = args[2] if len(args) > 2 else None
+        targets = args[3:] if len(args) > 3 else []
+        gen_hash(root, mode, targets)
+    elif len(args) >= 2 and args[1] == "bootstrap-meta":
+        bootstrap_meta(root)
     else:
         init(root)

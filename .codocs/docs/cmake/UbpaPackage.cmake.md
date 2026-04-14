@@ -1,3 +1,14 @@
+---
+codocs:
+  schema: 1
+  source_type: file
+  source_path: cmake/UbpaPackage.cmake
+  source_hash: sha256:5d63efd6da91b3751ba952efb2886f5873bba802f5a94e33beff04c98572019e
+  explicit_deps: []
+  dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  hash_mode: text-lf-sha256
+  verified_at: '2026-04-14T17:11:10.658413+08:00'
+---
 # UbpaPackage.cmake
 
 包管理与导出模块，负责依赖声明（菱形依赖检测）和 CMake 安装包配置文件生成。
