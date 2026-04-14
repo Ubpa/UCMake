@@ -23,6 +23,12 @@ Lint behavior:
 import os
 import sys
 import json
+
+# Fix Windows console encoding for Chinese output
+if sys.stdout.encoding and sys.stdout.encoding.lower() not in ("utf-8", "utf_8"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+if sys.stderr.encoding and sys.stderr.encoding.lower() not in ("utf-8", "utf_8"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 import stat
 import shutil
 import fnmatch
@@ -596,7 +602,9 @@ def install_hooks(project_root: Path):
     for hook_file in sorted(hooks_src.iterdir()):
         if hook_file.is_file():
             dest = git_hooks_dir / hook_file.name
-            shutil.copy2(hook_file, dest)
+            # Write with LF line endings to avoid CRLF issues on Windows
+            content = hook_file.read_text(encoding="utf-8", errors="replace")
+            dest.write_text(content, encoding="utf-8", newline="\n")
             dest.chmod(dest.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
             installed.append(hook_file.name)
 
@@ -923,6 +931,10 @@ def lint(project_root: Path) -> int:
     BLOAT_HINT = (
         "→ 精简 MD，删除冗余描述或直接照搬源码的内容"
     )
+    STALE_DIR_HINT = (
+        "→ 目录文档不只是索引，还应包含架构说明、设计决策、模块关系等。\n"
+        "         请 Read 该文档，确认内容（不只是索引表）是否仍准确，然后 review-stale + refresh-hash"
+    )
 
     print(f"=== codocs lint: {len(issues)} issue(s) ===")
     for kind, path, reason in issues:
@@ -931,6 +943,8 @@ def lint(project_root: Path) -> int:
             print(f"         {THIN_HINT}")
         elif kind == "BLOAT":
             print(f"         {BLOAT_HINT}")
+        elif kind == "STALE_DIR":
+            print(f"         {STALE_DIR_HINT}")
 
     return len(issues)
 
@@ -1413,16 +1427,21 @@ def refresh_hash(project_root: Path, md_path: Path) -> None:
         sys.exit(1)
 
     # Check 2: source has not changed since review
-    try:
-        current_source_hash = compute_file_hash(project_root / source_path_rel)
-    except Exception as exc:
-        print(f"Error computing source hash: {exc}", file=sys.stderr)
-        sys.exit(1)
+    # Dir MDs don't have a source_hash (directories can't be hashed as files),
+    # so skip this check for dir source type.
+    if source_type == "dir":
+        current_source_hash = None  # dirs have no file hash
+    else:
+        try:
+            current_source_hash = compute_file_hash(project_root / source_path_rel)
+        except Exception as exc:
+            print(f"Error computing source hash: {exc}", file=sys.stderr)
+            sys.exit(1)
 
-    if current_source_hash != receipt.get("source_hash_at_review"):
-        print("Error: source file has changed since review. "
-              "Run 'review-stale' again.", file=sys.stderr)
-        sys.exit(1)
+        if current_source_hash != receipt.get("source_hash_at_review"):
+            print("Error: source file has changed since review. "
+                  "Run 'review-stale' again.", file=sys.stderr)
+            sys.exit(1)
 
     # Check 3: dep has not changed since review
     try:
