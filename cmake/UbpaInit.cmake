@@ -117,14 +117,14 @@ macro(Ubpa_InitProject)
 
   # create a check target: rebuilds all test binaries then runs ctest
   # (unlike RunTests, this uses cmake --build to force MSBuild to recompile changed sources)
-  if(NOT TARGET ${PROJECT_NAME}_check)
-    add_custom_target(${PROJECT_NAME}_check
+  if(NOT TARGET ${PROJECT_NAME}_Check)
+    add_custom_target(${PROJECT_NAME}_Check
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG> --target ${PROJECT_NAME}_BuildTests
       COMMAND ${CMAKE_CTEST_COMMAND} -C $<CONFIG> -j${UBPA_PROCESSOR_COUNT} --output-on-failure
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       COMMENT "Building tests and running ctest for ${PROJECT_NAME}..."
     )
-    set_target_properties(${PROJECT_NAME}_check PROPERTIES FOLDER "${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME}_Check PROPERTIES FOLDER "${PROJECT_NAME}")
   endif()
 
   # create a custom target for install

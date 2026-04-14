@@ -29,7 +29,7 @@
 |--------|------|
 | `<PROJECT>_BuildTests` | 构建所有测试（不依赖 ALL） |
 | `<PROJECT>_RunTests` | 先 BuildTests 再 `ctest -j<N>`，并行数自动检测（失败则回退 4） |
-| `<PROJECT>_check` | `cmake --build --target BuildTests` 强制重编后运行 ctest；与 RunTests 的区别是能正确触发 MSBuild 增量重编（适合 pre-commit hook 使用） |
+| `<PROJECT>_Check` | `cmake --build --target BuildTests` 强制重编后运行 ctest；与 RunTests 的区别是能正确触发 MSBuild 增量重编（适合 pre-commit hook 使用） |
 | `<PROJECT>_Install` | 执行当前配置的 install |
 | `<PROJECT>_InstallAll` | 依次 install Debug/Release/MinSizeRel/RelWithDebInfo 四个配置 |
 
