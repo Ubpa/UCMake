@@ -10,6 +10,9 @@ Ubpa_InitProject(CXX_STANDARD 20)
 
 Ubpa_AddSubDirsRec(src)
 
+# Install infra/ (hook tooling: more-hooks, codocs, ucmake hooks)
+install(DIRECTORY infra/ DESTINATION infra)
+
 Ubpa_Export(
   DIRECTORIES
     "cmake"
