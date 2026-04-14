@@ -1,0 +1,3 @@
+# Force LF for all shell scripts and template files
+*.sh text eol=lf
+*.in text eol=lf
