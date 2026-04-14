@@ -64,6 +64,7 @@ Ubpa_InitProject()
 - 输出目录统一到 `bin/`（runtime）和 `lib/`（archive）
 - 启用 IDE folder、CTest
 - 创建 `<PROJECT>_BuildTests` / `_RunTests` / `_Install` / `_InstallAll` 便捷 target
+- 自动注册 git hooks（codocs 文档检查、pre-commit 构建验证），**无需任何手动操作**
 
 ### 3. 添加 target
 
