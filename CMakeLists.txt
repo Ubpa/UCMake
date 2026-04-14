@@ -11,7 +11,9 @@ Ubpa_InitProject(CXX_STANDARD 20)
 Ubpa_AddSubDirsRec(src)
 
 # Install infra/ (hook tooling: more-hooks, codocs, ucmake hooks)
-install(DIRECTORY infra/ DESTINATION infra)
+# Must live alongside cmake/ so UbpaInit.cmake can resolve ../infra
+set(_ucmake_pkg_name "${PROJECT_NAME}_${PROJECT_VERSION_MAJOR}_${PROJECT_VERSION_MINOR}_${PROJECT_VERSION_PATCH}")
+install(DIRECTORY infra/ DESTINATION "${_ucmake_pkg_name}/infra")
 
 Ubpa_Export(
   DIRECTORIES
