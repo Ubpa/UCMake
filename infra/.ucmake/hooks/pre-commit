@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# UCMake pre-commit hook — static script, project values loaded from .ucmake/project.env
+# Registered by Ubpa_InitProject() at cmake configure time. Do NOT edit manually.
+
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+ENV_FILE="$ROOT/.ucmake/project.env"
+
+if [ ! -f "$ENV_FILE" ]; then
+    echo "[UCMake/pre-commit] .ucmake/project.env not found, skipping (re-run cmake configure)"
+    exit 0
+fi
+
+# shellcheck source=/dev/null
+source "$ENV_FILE"
+
+if [ ! -d "$UCMAKE_BUILD_DIR" ]; then
+    echo "[UCMake/pre-commit] build dir not found at $UCMAKE_BUILD_DIR, skipping"
+    exit 0
+fi
+
+echo "[UCMake/pre-commit] Building and running tests for $UCMAKE_PROJECT_NAME..."
+if ! cmake --build "$UCMAKE_BUILD_DIR" --config "$UCMAKE_DEFAULT_CONFIG" \
+           --target "${UCMAKE_PROJECT_NAME}_Check" 2>&1; then
+    echo "[UCMake/pre-commit] Build or tests failed. Commit aborted."
+    exit 1
+fi
+
+echo "[UCMake/pre-commit] Build and tests passed."
