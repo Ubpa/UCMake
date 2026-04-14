@@ -3,11 +3,11 @@ codocs:
   schema: 1
   source_type: file
   source_path: cmake/UbpaInit.cmake
-  source_hash: sha256:2d9ba36cee0d5dd7d0d54b7891f5d0975b045c05b91d5a2f44470f045a1b5188
+  source_hash: sha256:35dfd5f93853ebab6227717ead2e8a74c85a56d9c608a2773d08c23b6e43ceed
   explicit_deps: []
   dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   hash_mode: text-lf-sha256
-  verified_at: '2026-04-14T17:11:10.658413+08:00'
+  verified_at: '2026-04-15T01:06:13.245024+08:00'
 ---
 # UbpaInit.cmake
 
@@ -49,20 +49,30 @@ codocs:
 - 本文件是 macro，变量作用在调用方 scope，与 function 不同——`set()` 直接影响外部。
 - `Ubpa_BuildTest_<PROJECT>` cache 变量控制 TEST 目标是否构建，默认 TRUE。
 - USE_FOLDERS 全局开启，确保 IDE 中 target 按 folder 分组展示。
-- `UBPA_UCMAKE_LIST_DIR` 在 include 时捕获 UCMake 安装目录，用于 macro 内定位 hook 模板。
+- `UBPA_UCMAKE_LIST_DIR` 在 include 时捕获 UCMake 安装目录，用于 macro 内定位 infra/ 目录。
 
-## 自动生成的 hook
+## configure 时自动完成的 hook 配置
 
-`Ubpa_InitProject()` 在 cmake configure 时将 `cmake/hooks/pre-commit.in` 展开为：
+`Ubpa_InitProject()` 在 cmake configure 阶段执行两项工作：
+
+**1. 生成 `.ucmake/project.env`**（运行时变量，供 hook 脚本读取）
 
 ```
-${CMAKE_SOURCE_DIR}/.ucmake/hooks/pre-commit
+UCMAKE_PROJECT_NAME=<PROJECT_NAME>
+UCMAKE_BUILD_DIR=<CMAKE_BINARY_DIR>
+UCMAKE_DEFAULT_CONFIG=Release
 ```
 
-同时生成 `.ucmake/.gitignore`（内容 `*`），防止产物进 git。生成的 hook 默认不生效，用户自行注册：
+同时写入 `.ucmake/.gitignore`（内容 `*`），防止产物进 git。
 
-```bash
-python .more-hooks/more-hooks.py register . \
-  --hook pre-commit --id <project>-ci \
-  --script .ucmake/hooks/pre-commit --priority 80 --symlink
-```
+**2. 通过 `more-hooks.py` 自动注册三个 hook（symlink 到 infra/）**
+
+| hook | id | priority | 脚本来源 |
+|------|----|----------|---------|
+| pre-commit | codocs | 50 | `infra/.codocs/hooks/pre-commit` |
+| commit-msg | codocs | 50 | `infra/.codocs/hooks/commit-msg` |
+| pre-commit | ucmake | 80 | `infra/.ucmake/hooks/pre-commit` |
+
+自愈性：重新 configure 时会更新 symlink 指向当前 UCMake 安装版本。
+
+**前提条件**：需要先执行 `cmake --install` 将 infra/ 安装到位；若 infra/ 不存在，注册步骤会打印 WARNING 并跳过（不影响 configure 成功）。

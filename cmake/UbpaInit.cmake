@@ -130,23 +130,70 @@ macro(Ubpa_InitProject)
     set_target_properties(${PROJECT_NAME}_Check PROPERTIES FOLDER "${PROJECT_NAME}")
   endif()
 
-  # generate a pre-commit hook script into <source_dir>/.cmake/hooks/pre-commit
-  # this file is a build artifact (not tracked by git) that users can register
-  # with their hook framework of choice, e.g.:
-  #   python .more-hooks/more-hooks.py register . \
-  #     --hook pre-commit --id <project>-ci --script .cmake/hooks/pre-commit --symlink
-  string(TOLOWER "${PROJECT_NAME}" PROJECT_NAME_LOWER)
+  # ── Hook tooling: generate project.env + auto-register via more-hooks ──────
+  # infra/ sits alongside cmake/ in the UCMake install tree
+  get_filename_component(_ucmake_infra "${UBPA_UCMAKE_LIST_DIR}/../infra" ABSOLUTE)
+
+  # Generate .ucmake/project.env (runtime values for the static ucmake hook script)
   set(UCMAKE_DEFAULT_CONFIG "Release")
-  set(_hook_template "${UBPA_UCMAKE_LIST_DIR}/hooks/pre-commit.in")
-  set(_hook_output "${CMAKE_SOURCE_DIR}/.ucmake/hooks/pre-commit")
-  if(EXISTS "${_hook_template}")
-    configure_file("${_hook_template}" "${_hook_output}" @ONLY NEWLINE_STYLE LF)
-    # generate .gitignore to prevent build artifacts from being tracked
-    file(WRITE "${CMAKE_SOURCE_DIR}/.ucmake/.gitignore" "*\n")
-    message(STATUS "[UCMake] Generated hook: ${_hook_output}")
+  file(MAKE_DIRECTORY "${CMAKE_SOURCE_DIR}/.ucmake")
+  file(WRITE "${CMAKE_SOURCE_DIR}/.ucmake/project.env"
+    "UCMAKE_PROJECT_NAME=${PROJECT_NAME}\n"
+    "UCMAKE_BUILD_DIR=${CMAKE_BINARY_DIR}\n"
+    "UCMAKE_DEFAULT_CONFIG=${UCMAKE_DEFAULT_CONFIG}\n"
+  )
+  # Gitignore for .ucmake/ (project.env is a configure artifact, not tracked)
+  file(WRITE "${CMAKE_SOURCE_DIR}/.ucmake/.gitignore" "*\n")
+  message(STATUS "[UCMake] Generated .ucmake/project.env")
+
+  # Auto-register hooks via more-hooks (symlinks point into installed infra/)
+  set(_more_hooks_py "${_ucmake_infra}/.more-hooks/more-hooks.py")
+  if(EXISTS "${_more_hooks_py}")
+    find_package(Python3 COMPONENTS Interpreter QUIET)
+    if(Python3_FOUND)
+      # codocs pre-commit (priority 50)
+      execute_process(
+        COMMAND "${Python3_EXECUTABLE}" "${_more_hooks_py}" register "${CMAKE_SOURCE_DIR}"
+          --hook pre-commit
+          --id codocs
+          --script "${_ucmake_infra}/.codocs/hooks/pre-commit"
+          --priority 50
+          --symlink
+        RESULT_VARIABLE _mh_rc
+        OUTPUT_QUIET ERROR_QUIET
+      )
+      # codocs commit-msg (priority 50)
+      execute_process(
+        COMMAND "${Python3_EXECUTABLE}" "${_more_hooks_py}" register "${CMAKE_SOURCE_DIR}"
+          --hook commit-msg
+          --id codocs
+          --script "${_ucmake_infra}/.codocs/hooks/commit-msg"
+          --priority 50
+          --symlink
+        RESULT_VARIABLE _mh_rc
+        OUTPUT_QUIET ERROR_QUIET
+      )
+      # ucmake pre-commit (priority 80)
+      execute_process(
+        COMMAND "${Python3_EXECUTABLE}" "${_more_hooks_py}" register "${CMAKE_SOURCE_DIR}"
+          --hook pre-commit
+          --id ucmake
+          --script "${_ucmake_infra}/.ucmake/hooks/pre-commit"
+          --priority 80
+          --symlink
+        RESULT_VARIABLE _mh_rc
+        OUTPUT_QUIET ERROR_QUIET
+      )
+      message(STATUS "[UCMake] Registered hooks via more-hooks (infra: ${_ucmake_infra})")
+    else()
+      message(WARNING "[UCMake] Hook registration skipped: Python3 not found")
+    endif()
+  else()
+    message(WARNING "[UCMake] Hook registration skipped: infra not found at ${_ucmake_infra} (run cmake --install first)")
   endif()
-  unset(_hook_template)
-  unset(_hook_output)
+  unset(_ucmake_infra)
+  unset(_more_hooks_py)
+  unset(_mh_rc)
 
   # create a custom target for install
   if(NOT TARGET ${PROJECT_NAME}_Install)
