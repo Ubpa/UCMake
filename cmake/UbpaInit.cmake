@@ -130,7 +130,7 @@ macro(Ubpa_InitProject)
     set_target_properties(${PROJECT_NAME}_Check PROPERTIES FOLDER "${PROJECT_NAME}")
   endif()
 
-  # ── Hook tooling: generate project.env + auto-register via more-hooks ──────
+  # -- Hook tooling: generate project.env + auto-register via more-hooks ------
   # .more-hooks/ .codocs/ .ucmake/ sit alongside cmake/ in the UCMake install tree
   get_filename_component(_ucmake_root "${UBPA_UCMAKE_LIST_DIR}/.." ABSOLUTE)
 
@@ -170,6 +170,18 @@ macro(Ubpa_InitProject)
           --id codocs
           --script "${_ucmake_root}/.codocs/hooks/commit-msg"
           --priority 50
+          --symlink
+          --force
+        RESULT_VARIABLE _mh_rc
+        OUTPUT_QUIET ERROR_QUIET
+      )
+      # ucmake ascii-check pre-commit (priority 70)
+      execute_process(
+        COMMAND "${Python3_EXECUTABLE}" "${_more_hooks_py}" register "${CMAKE_SOURCE_DIR}"
+          --hook pre-commit
+          --id ucmake-ascii
+          --script "${_ucmake_root}/.ucmake/hooks/ascii-check"
+          --priority 70
           --symlink
           --force
         RESULT_VARIABLE _mh_rc

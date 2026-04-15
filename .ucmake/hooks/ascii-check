@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# UCMake ascii-check pre-commit hook
+# Rejects commits that introduce non-ASCII characters in source/cmake files.
+# Registered by Ubpa_InitProject() at cmake configure time. Do NOT edit manually.
+
+set -euo pipefail
+
+PYTHON=$(command -v python 2>/dev/null || command -v python3 2>/dev/null || true)
+if [ -z "$PYTHON" ] || ! "$PYTHON" -c "import sys" 2>/dev/null; then
+  echo "[UCMake/ascii-check] WARNING: python not found, skipping ASCII check" >&2
+  exit 0
+fi
+
+# File extensions to check
+EXTENSIONS="c|cpp|h|hpp|cxx|cc|cmake"
+FILENAME_PATTERNS="CMakeLists\.txt"
+
+# Collect staged files matching the patterns
+staged_files=$(git diff --cached --name-only --diff-filter=ACMRT | \
+  grep -E "\.(${EXTENSIONS})$|${FILENAME_PATTERNS}" || true)
+
+if [ -z "$staged_files" ]; then
+  exit 0
+fi
+
+found_violations=false
+
+while IFS= read -r file; do
+  # Use Python to find non-ASCII bytes in the staged content
+  violations=$("$PYTHON" - "$file" << 'PYEOF'
+import sys, subprocess
+filepath = sys.argv[1]
+result = subprocess.run(
+    ["git", "show", f":{filepath}"],
+    capture_output=True
+)
+lines = result.stdout.split(b"\n")
+for lineno, line in enumerate(lines, 1):
+    for col, byte in enumerate(line, 1):
+        if byte > 127:
+            # decode with replacement to show the line
+            line_str = line.decode("utf-8", errors="replace")
+            print(f"  line {lineno}: {line_str}")
+            break
+PYEOF
+  )
+  if [ -n "$violations" ]; then
+    if [ "$found_violations" = false ]; then
+      echo ""
+      echo "[UCMake/ascii-check] ❌ Non-ASCII characters detected, commit rejected"
+      echo ""
+      found_violations=true
+    fi
+    echo "  ${file}:"
+    echo "$violations"
+    echo ""
+  fi
+done <<< "$staged_files"
+
+if [ "$found_violations" = true ]; then
+  echo "  Use only ASCII characters in source and cmake files."
+  echo "  To bypass: git commit --no-verify"
+  echo ""
+  exit 1
+fi
+
+exit 0
