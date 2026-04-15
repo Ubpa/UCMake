@@ -21,7 +21,7 @@ set(_infra_files
     ".codocs/hooks/pre-commit"
     ".codocs/hooks/commit-msg"
     ".ucmake/hooks/pre-commit"
-
+    ".ucmake/hooks/ascii-check"
 )
 set(_install_code "")
 foreach(_src IN LISTS _infra_files)
