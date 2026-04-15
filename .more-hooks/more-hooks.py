@@ -116,12 +116,14 @@ def is_dispatcher(path: Path) -> bool:
 
 # ── Public API ───────────────────────────────────────────────────────────────
 
-def install_dispatcher(project_root: str | Path, hook_name: str) -> bool:
+def install_dispatcher(project_root: str | Path, hook_name: str, force: bool = False) -> bool:
     """
     Install the dispatcher into .git/hooks/<hook_name>.
 
     Returns True if installed/updated, False if a non-dispatcher hook already
-    exists there (caller should decide what to do).
+    exists there and force=False (caller should decide what to do).
+    When force=True, an existing foreign hook is renamed to <hook_name>.bak
+    before the dispatcher is written.
     """
     project_root = Path(project_root).resolve()
     git_dir = find_git_dir(project_root)
@@ -130,7 +132,13 @@ def install_dispatcher(project_root: str | Path, hook_name: str) -> bool:
     (git_dir / "hooks").mkdir(exist_ok=True)
 
     if hook_path.exists() and not is_dispatcher(hook_path):
-        return False  # foreign hook, don't overwrite
+        if not force:
+            return False  # foreign hook, don't overwrite
+        # Rename foreign hook to .bak so it is not lost
+        bak_path = hook_path.with_suffix(".bak")
+        if bak_path.exists():
+            bak_path.unlink()
+        hook_path.rename(bak_path)
 
     dispatcher_content = DISPATCHER_TEMPLATE.format(hook_name=hook_name)
     hook_path.write_text(dispatcher_content, encoding="utf-8", newline="\n")
@@ -145,6 +153,7 @@ def register_hook(
     script_path: str | Path,
     priority: int = 50,
     copy: bool = True,
+    force: bool = False,
 ) -> Path:
     """
     Register a hook script under .git/hooks.d/<hook_name>/<priority>-<id>.
@@ -182,12 +191,12 @@ def register_hook(
         dest.symlink_to(script_path)
 
     # Install dispatcher if not already present (or update if it is ours)
-    installed = install_dispatcher(project_root, hook_name)
+    installed = install_dispatcher(project_root, hook_name, force=force)
     if not installed:
         print(
             f"[more-hooks] WARNING: .git/hooks/{hook_name} already exists and is not "
             f"a more-hooks dispatcher. Registered script in hooks.d/ but dispatcher "
-            f"is NOT active. Remove or rename the existing hook manually.",
+            f"is NOT active. Remove or rename the existing hook manually, or use --force.",
             file=sys.stderr,
         )
 
@@ -304,7 +313,7 @@ def cmd_install(args: argparse.Namespace) -> int:
     root = Path(args.project_root).resolve()
     hooks = args.hooks or ["pre-commit", "commit-msg", "pre-push", "post-checkout"]
     for hook in hooks:
-        ok = install_dispatcher(root, hook)
+        ok = install_dispatcher(root, hook, force=args.force)
         if ok:
             print(f"[more-hooks] installed dispatcher: .git/hooks/{hook}", file=sys.stderr)
         else:
@@ -323,6 +332,7 @@ def cmd_register(args: argparse.Namespace) -> int:
         script_path=args.script,
         priority=args.priority,
         copy=not args.symlink,
+        force=args.force,
     )
     print(f"[more-hooks] registered: {dest}", file=sys.stderr)
     return 0
@@ -369,6 +379,7 @@ def build_parser() -> argparse.ArgumentParser:
     pi = sub.add_parser("install", help="Install dispatcher(s) into .git/hooks/")
     pi.add_argument("project_root", help="Git repository root")
     pi.add_argument("--hooks", nargs="+", help="Hook names to install (default: common set)")
+    pi.add_argument("--force", action="store_true", help="Rename existing foreign hooks to .bak and install dispatcher")
 
     # register
     pr = sub.add_parser("register", help="Register a hook script")
@@ -378,6 +389,7 @@ def build_parser() -> argparse.ArgumentParser:
     pr.add_argument("--script", required=True, help="Path to the hook script")
     pr.add_argument("--priority", type=int, default=50, help="Execution order (default: 50)")
     pr.add_argument("--symlink", action="store_true", help="Symlink instead of copy")
+    pr.add_argument("--force", action="store_true", help="Rename existing foreign hooks to .bak and install dispatcher")
 
     # unregister
     pu = sub.add_parser("unregister", help="Remove a registered hook")

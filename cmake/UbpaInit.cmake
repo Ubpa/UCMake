@@ -131,8 +131,8 @@ macro(Ubpa_InitProject)
   endif()
 
   # ── Hook tooling: generate project.env + auto-register via more-hooks ──────
-  # infra/ sits alongside cmake/ in the UCMake install tree
-  get_filename_component(_ucmake_infra "${UBPA_UCMAKE_LIST_DIR}/../infra" ABSOLUTE)
+  # .more-hooks/ .codocs/ .ucmake/ sit alongside cmake/ in the UCMake install tree
+  get_filename_component(_ucmake_root "${UBPA_UCMAKE_LIST_DIR}/.." ABSOLUTE)
 
   # Generate .ucmake/project.env (runtime values for the static ucmake hook script)
   set(UCMAKE_DEFAULT_CONFIG "Release")
@@ -143,11 +143,11 @@ macro(Ubpa_InitProject)
     "UCMAKE_DEFAULT_CONFIG=${UCMAKE_DEFAULT_CONFIG}\n"
   )
   # Gitignore for .ucmake/ (project.env is a configure artifact, not tracked)
-  file(WRITE "${CMAKE_SOURCE_DIR}/.ucmake/.gitignore" "*\n")
+  file(WRITE "${CMAKE_SOURCE_DIR}/.ucmake/.gitignore" "project.env\n")
   message(STATUS "[UCMake] Generated .ucmake/project.env")
 
-  # Auto-register hooks via more-hooks (symlinks point into installed infra/)
-  set(_more_hooks_py "${_ucmake_infra}/.more-hooks/more-hooks.py")
+  # Auto-register hooks via more-hooks
+  set(_more_hooks_py "${_ucmake_root}/.more-hooks/more-hooks.py")
   if(EXISTS "${_more_hooks_py}")
     find_package(Python3 COMPONENTS Interpreter QUIET)
     if(Python3_FOUND)
@@ -156,9 +156,10 @@ macro(Ubpa_InitProject)
         COMMAND "${Python3_EXECUTABLE}" "${_more_hooks_py}" register "${CMAKE_SOURCE_DIR}"
           --hook pre-commit
           --id codocs
-          --script "${_ucmake_infra}/.codocs/hooks/pre-commit"
+          --script "${_ucmake_root}/.codocs/hooks/pre-commit"
           --priority 50
           --symlink
+          --force
         RESULT_VARIABLE _mh_rc
         OUTPUT_QUIET ERROR_QUIET
       )
@@ -167,9 +168,10 @@ macro(Ubpa_InitProject)
         COMMAND "${Python3_EXECUTABLE}" "${_more_hooks_py}" register "${CMAKE_SOURCE_DIR}"
           --hook commit-msg
           --id codocs
-          --script "${_ucmake_infra}/.codocs/hooks/commit-msg"
+          --script "${_ucmake_root}/.codocs/hooks/commit-msg"
           --priority 50
           --symlink
+          --force
         RESULT_VARIABLE _mh_rc
         OUTPUT_QUIET ERROR_QUIET
       )
@@ -178,20 +180,21 @@ macro(Ubpa_InitProject)
         COMMAND "${Python3_EXECUTABLE}" "${_more_hooks_py}" register "${CMAKE_SOURCE_DIR}"
           --hook pre-commit
           --id ucmake
-          --script "${_ucmake_infra}/.ucmake/hooks/pre-commit"
+          --script "${_ucmake_root}/.ucmake/hooks/pre-commit"
           --priority 80
           --symlink
+          --force
         RESULT_VARIABLE _mh_rc
         OUTPUT_QUIET ERROR_QUIET
       )
-      message(STATUS "[UCMake] Registered hooks via more-hooks (infra: ${_ucmake_infra})")
+      message(STATUS "[UCMake] Registered hooks via more-hooks (root: ${_ucmake_root})")
     else()
       message(WARNING "[UCMake] Hook registration skipped: Python3 not found")
     endif()
   else()
-    message(WARNING "[UCMake] Hook registration skipped: infra not found at ${_ucmake_infra} (run cmake --install first)")
+    message(WARNING "[UCMake] Hook registration skipped: more-hooks not found at ${_ucmake_root} (run cmake --install first)")
   endif()
-  unset(_ucmake_infra)
+  unset(_ucmake_root)
   unset(_more_hooks_py)
   unset(_mh_rc)
 

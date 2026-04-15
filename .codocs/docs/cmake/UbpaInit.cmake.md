@@ -49,7 +49,7 @@ codocs:
 - 本文件是 macro，变量作用在调用方 scope，与 function 不同——`set()` 直接影响外部。
 - `Ubpa_BuildTest_<PROJECT>` cache 变量控制 TEST 目标是否构建，默认 TRUE。
 - USE_FOLDERS 全局开启，确保 IDE 中 target 按 folder 分组展示。
-- `UBPA_UCMAKE_LIST_DIR` 在 include 时捕获 UCMake 安装目录，用于 macro 内定位 infra/ 目录。
+- `UBPA_UCMAKE_LIST_DIR` 在 include 时捕获 UCMake 安装目录，用于 macro 内定位工具目录（`.more-hooks/`、`.codocs/`、`.ucmake/`）。
 
 ## configure 时自动完成的 hook 配置
 
@@ -63,16 +63,16 @@ UCMAKE_BUILD_DIR=<CMAKE_BINARY_DIR>
 UCMAKE_DEFAULT_CONFIG=Release
 ```
 
-同时写入 `.ucmake/.gitignore`（内容 `*`），防止产物进 git。
+同时写入 `.ucmake/.gitignore`（内容 `project.env`），防止产物进 git。
 
-**2. 通过 `more-hooks.py` 自动注册三个 hook（symlink 到 infra/）**
+**2. 通过 `more-hooks.py` 自动注册三个 hook**
 
 | hook | id | priority | 脚本来源 |
 |------|----|----------|---------|
-| pre-commit | codocs | 50 | `infra/.codocs/hooks/pre-commit` |
-| commit-msg | codocs | 50 | `infra/.codocs/hooks/commit-msg` |
-| pre-commit | ucmake | 80 | `infra/.ucmake/hooks/pre-commit` |
+| pre-commit | codocs | 50 | `.codocs/hooks/pre-commit` |
+| commit-msg | codocs | 50 | `.codocs/hooks/commit-msg` |
+| pre-commit | ucmake | 80 | `.ucmake/hooks/pre-commit` |
 
 自愈性：重新 configure 时会更新 symlink 指向当前 UCMake 安装版本。
 
-**前提条件**：需要先执行 `cmake --install` 将 infra/ 安装到位；若 infra/ 不存在，注册步骤会打印 WARNING 并跳过（不影响 configure 成功）。
+**前提条件**：需要先执行 `cmake --install` 将工具文件安装到位；若 `.more-hooks/more-hooks.py` 不存在，注册步骤会打印 WARNING 并跳过（不影响 configure 成功）。

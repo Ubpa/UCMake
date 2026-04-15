@@ -1,1 +1,0 @@
-../../.codocs/scripts/codocs.py
