@@ -1,0 +1,8 @@
+# Shell scripts must always use LF line endings (CRLF breaks shebang on Linux/Git Bash)
+*.sh        text eol=lf
+*.bash      text eol=lf
+
+# Hook scripts (no extension)
+.codocs/hooks/*     text eol=lf
+.ucmake/hooks/*     text eol=lf
+infra/**            text eol=lf

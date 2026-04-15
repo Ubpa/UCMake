@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 
-project (UCMake VERSION 0.7.3)
+project (UCMake VERSION 1.0.0)
 message(STATUS "[Project] ${PROJECT_NAME} ${PROJECT_VERSION}")
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
