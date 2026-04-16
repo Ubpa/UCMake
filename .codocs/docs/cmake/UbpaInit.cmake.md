@@ -36,6 +36,8 @@ codocs:
 
 ## 自动创建的便捷 target
 
+以上 5 个 target 均放置在 IDE folder `<PROJECT>/UCMakePredefinedTargets` 下，与业务 target 区分。
+
 | Target | 说明 |
 |--------|------|
 | `<PROJECT>_BuildTests` | 构建所有测试（不依赖 ALL） |

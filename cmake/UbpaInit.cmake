@@ -98,7 +98,7 @@ macro(Ubpa_InitProject)
   # create a custom target for building all tests
   if(NOT TARGET ${PROJECT_NAME}_BuildTests)
     add_custom_target(${PROJECT_NAME}_BuildTests)
-    set_target_properties(${PROJECT_NAME}_BuildTests PROPERTIES FOLDER "${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME}_BuildTests PROPERTIES FOLDER "${PROJECT_NAME}/UCMakePredefinedTargets")
   endif()
 
   # create a custom target for running all tests (builds first, then runs ctest)
@@ -115,7 +115,7 @@ macro(Ubpa_InitProject)
       COMMENT "Running all tests for ${PROJECT_NAME} (parallel: ${UBPA_PROCESSOR_COUNT})..."
       DEPENDS ${PROJECT_NAME}_BuildTests
     )
-    set_target_properties(${PROJECT_NAME}_RunTests PROPERTIES FOLDER "${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME}_RunTests PROPERTIES FOLDER "${PROJECT_NAME}/UCMakePredefinedTargets")
   endif()
 
   # create a check target: rebuilds all test binaries then runs ctest
@@ -127,7 +127,7 @@ macro(Ubpa_InitProject)
       WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
       COMMENT "Building tests and running ctest for ${PROJECT_NAME}..."
     )
-    set_target_properties(${PROJECT_NAME}_Check PROPERTIES FOLDER "${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME}_Check PROPERTIES FOLDER "${PROJECT_NAME}/UCMakePredefinedTargets")
   endif()
 
   # -- Hook tooling: generate project.env + auto-register via more-hooks ------
@@ -216,7 +216,7 @@ macro(Ubpa_InitProject)
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config $<CONFIG> --target install
       COMMENT "Installing ${PROJECT_NAME}..."
     )
-    set_target_properties(${PROJECT_NAME}_Install PROPERTIES FOLDER "${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME}_Install PROPERTIES FOLDER "${PROJECT_NAME}/UCMakePredefinedTargets")
   endif()
 
   # create a custom target for batch install (all 4 configurations)
@@ -228,7 +228,7 @@ macro(Ubpa_InitProject)
       COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --config RelWithDebInfo --target install
       COMMENT "Installing ${PROJECT_NAME} for all configurations (Debug, Release, MinSizeRel, RelWithDebInfo)..."
     )
-    set_target_properties(${PROJECT_NAME}_InstallAll PROPERTIES FOLDER "${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME}_InstallAll PROPERTIES FOLDER "${PROJECT_NAME}/UCMakePredefinedTargets")
   endif()
 
   if(NOT Ubpa_RootProjectPath)
