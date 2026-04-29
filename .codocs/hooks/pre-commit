@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # codocs pre-commit hook (auto-installed by codocs init)
-# Phase 1: codocs lint — ORPHAN/MISSING/STALE_FILE 硬拦截；STALE_DIR 软警告
+# Phase 1: codocs lint — ORPHAN/MISSING/STALE_FILE/BLOAT/THIN 硬拦截；STALE_DIR 软警告
 # Phase 2: 检测受管控的代码文件改动时，若无对应 .codocs/ 文档改动，设标记（不拦截）
 # Phase 3: 检测已暂存的 .codocs/ MD 改动，若其父目录 MD 未同步更新，设标记（不拦截）
 
@@ -70,9 +70,9 @@ if [ -f "$INIT_PY" ]; then
   lint_rc=$?
   set -e
 
-  # Hard failures: STALE_FILE, MISSING, ORPHAN, CONFIG
+  # Hard failures: STALE_FILE, MISSING, ORPHAN, CONFIG, BLOAT, THIN
   has_hard_failure=false
-  if echo "$lint_output" | grep -qE '\[(STALE_FILE|MISSING|ORPHAN|CONFIG)\]'; then
+  if echo "$lint_output" | grep -qE '\[(STALE_FILE|MISSING|ORPHAN|CONFIG|BLOAT|THIN)\]'; then
     has_hard_failure=true
   fi
 
@@ -80,12 +80,23 @@ if [ -f "$INIT_PY" ]; then
     echo ""
     echo "[codocs] ❌ lint 发现问题，提交已拦截"
     echo ""
-    echo "$lint_output" | grep -E '\[(STALE_FILE|MISSING|ORPHAN|CONFIG)\]' || true
+    echo "$lint_output" | grep -E '\[(STALE_FILE|MISSING|ORPHAN|CONFIG|BLOAT|THIN)\]' || true
     echo ""
     if echo "$lint_output" | grep -q '\[STALE_FILE\]'; then
       echo "  文档哈希已过期，请审查后刷新："
-      echo "    python .codocs/codocs.py . review-stale <md-path>"
-      echo "    python .codocs/codocs.py . refresh-hash <md-path>"
+      echo "    python .codocs/scripts/codocs.py . review-stale <md-path>"
+      echo "    python .codocs/scripts/codocs.py . refresh-hash <md-path>"
+      echo ""
+    fi
+    if echo "$lint_output" | grep -q '\[BLOAT\]'; then
+      echo "  文档过长（照搬源码），请精简："
+      echo "    删除冗余描述，聚焦语义信息（接口约定、算法选择、陷阱等）"
+      echo ""
+    fi
+    if echo "$lint_output" | grep -q '\[THIN\]'; then
+      echo "  文档过短，请补充："
+      echo "    对照源文件检查是否有遗漏的接口、约定、陷阱或算法选择"
+      echo "    确认无遗漏后，在 commit message 中加 ## codocs-skip 跳过（须写具体理由）"
       echo ""
     fi
     echo "请修复以上问题后重新提交，或使用 git commit --no-verify 跳过"
@@ -104,8 +115,8 @@ if [ -f "$INIT_PY" ]; then
     echo "$lint_output" | grep '\[STALE_DIR\]'
     echo ""
     echo "  目录文档不只是索引，还应包含架构说明、设计决策等。请审查后刷新哈希："
-    echo "    python .codocs/codocs.py . review-stale <md-path>"
-    echo "    python .codocs/codocs.py . refresh-hash <md-path>"
+    echo "    python .codocs/scripts/codocs.py . review-stale <md-path>"
+    echo "    python .codocs/scripts/codocs.py . refresh-hash <md-path>"
     echo ""
   fi
 fi
