@@ -47,9 +47,12 @@ STALE_DIR_FILE="${TMPDIR:-/tmp}/codocs_stale_dir_paths"
 
 # ── Shared variables (needed by multiple phases) ──────────────────────────
 # Self-locate codocs.py: resolve symlink → .codocs/hooks/pre-commit
-# → two dirname levels up → .codocs/ → codocs.py
+# → two dirname levels up → .codocs/ → scripts/codocs.py
+# Fallback to .codocs/codocs.py for older layouts.
 _hook_self="$(readlink -f "$0")"
-INIT_PY="$(dirname "$(dirname "$_hook_self")")/codocs.py"
+_codocs_dir="$(dirname "$(dirname "$_hook_self")")"
+INIT_PY="$_codocs_dir/scripts/codocs.py"
+[ -f "$INIT_PY" ] || INIT_PY="$_codocs_dir/codocs.py"
 
 # 获取暂存文件列表（Phase 2/3/4 均需要）
 staged_files=$(git diff --cached --name-only --diff-filter=ACMRT)

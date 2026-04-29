@@ -3,11 +3,11 @@ codocs:
   schema: 1
   source_type: dir
   source_path: cmake
-  entries_hash: sha256:ee1858f8bf0b215246e7271e25c3d4ef0ac1ad4d493e3fd7fb72ac2a4d483f05
+  entries_hash: sha256:6bdb945381362b193b4bd2fee23e92582081e643025cae41acf0bdfd0c06061e
   explicit_deps: []
   dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   hash_mode: text-lf-sha256
-  verified_at: '2026-04-15T01:14:42.026449+08:00'
+  verified_at: '2026-04-29T16:36:37.777434+08:00'
   source_hash: null
 ---
 # cmake/

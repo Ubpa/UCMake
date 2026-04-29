@@ -3,11 +3,11 @@ codocs:
   schema: 1
   source_type: file
   source_path: cmake/UbpaInit.cmake
-  source_hash: sha256:35dfd5f93853ebab6227717ead2e8a74c85a56d9c608a2773d08c23b6e43ceed
+  source_hash: sha256:016e74189775a46ea6079bab8796a393ce42acd613932fc12c9c611f29b8816a
   explicit_deps: []
   dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   hash_mode: text-lf-sha256
-  verified_at: '2026-04-15T01:06:13.245024+08:00'
+  verified_at: '2026-04-29T16:35:56.043415+08:00'
 ---
 # UbpaInit.cmake
 
