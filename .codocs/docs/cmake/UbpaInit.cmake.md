@@ -55,26 +55,7 @@ codocs:
 
 ## configure 时自动完成的 hook 配置
 
-`Ubpa_InitProject()` 在 cmake configure 阶段执行两项工作：
+`Ubpa_InitProject()` 在 cmake configure 阶段：
 
-**1. 生成 `.ucmake/project.env`**（运行时变量，供 hook 脚本读取）
-
-```
-UCMAKE_PROJECT_NAME=<PROJECT_NAME>
-UCMAKE_BUILD_DIR=<CMAKE_BINARY_DIR>
-UCMAKE_DEFAULT_CONFIG=Release
-```
-
-同时写入 `.ucmake/.gitignore`（内容 `project.env`），防止产物进 git。
-
-**2. 通过 `more-hooks.py` 自动注册三个 hook**
-
-| hook | id | priority | 脚本来源 |
-|------|----|----------|---------|
-| pre-commit | codocs | 50 | `.codocs/hooks/pre-commit` |
-| commit-msg | codocs | 50 | `.codocs/hooks/commit-msg` |
-| pre-commit | ucmake | 80 | `.ucmake/hooks/pre-commit` |
-
-自愈性：重新 configure 时会更新 symlink 指向当前 UCMake 安装版本。
-
-**前提条件**：需要先执行 `cmake --install` 将工具文件安装到位；若 `.more-hooks/more-hooks.py` 不存在，注册步骤会打印 WARNING 并跳过（不影响 configure 成功）。
+1. 生成 `.ucmake/project.env`（`PROJECT_NAME`、`CMAKE_BINARY_DIR`、默认 config），同时写 `.ucmake/.gitignore` 防止产物进 git。
+2. 通过 `more-hooks.py` 注册 codocs/ucmake 三个 hook（pre-commit × 2、commit-msg × 1），symlink 指向当前 UCMake 安装版本，重新 configure 自动更新。需先 `cmake --install`，否则打印 WARNING 跳过（不影响 configure）。

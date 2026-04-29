@@ -44,10 +44,10 @@ codocs:
 
 如果项目有依赖（或指定了 `CPM` 选项），生成的 Config.cmake 会注入：
 1. include 目录自动添加到 `include_directories`
-2. 确保 UCMake 可用（先 find_package 再 FetchContent 从 GitHub）
-3. 重放所有 `Ubpa_AddDep` 调用（让下游用 `find_package(<PROJECT>)` 时自动传递依赖）
+2. 确保 UCMake 可用（先 find_package 再 FetchContent）
+3. 重放所有 `Ubpa_AddDep` 调用（让下游 `find_package` 自动传递依赖）
 
 ## 关键细节
 
 - `DIRECTORIES` 参数支持带前缀路径（如 `include/Foo` → 安装到 `<pkg>/include/`），空前缀则直接装到包根目录。
-- `Ubpa_AddDep` 是 macro，变量在调用方 scope，依赖列表修改会直接影响外部。
+- `Ubpa_AddDep` 是 macro，依赖列表修改直接影响调用方 scope。

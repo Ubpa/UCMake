@@ -3,11 +3,11 @@ codocs:
   schema: 1
   source_type: dir
   source_path: cmake
-  entries_hash: sha256:6bdb945381362b193b4bd2fee23e92582081e643025cae41acf0bdfd0c06061e
+  entries_hash: sha256:0ae72de16662365bc1f8ae493ad27d778c1012c128b10422e81404383ebcfbd3
   explicit_deps: []
   dep_hash: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
   hash_mode: text-lf-sha256
-  verified_at: '2026-04-29T16:36:37.777434+08:00'
+  verified_at: '2026-04-29T16:59:02.914107+08:00'
   source_hash: null
 ---
 # cmake/
@@ -26,4 +26,8 @@ UCMake 的 CMake 模块目录，提供统一的项目初始化、构建、包管
 | UbpaGit.cmake | 文件 | Git 初始化和子模块更新 |
 | UbpaQt.cmake | 文件 | Qt5 集成（初始化、AUTOMOC/AUTOUIC/AUTORCC 开关、Windows DLL 安装） |
 | UbpaDoc.cmake | 文件 | Doxygen 文档构建辅助 |
-| CPM.cmake | 文件 | 第三方包管理器（CPM.cmake v0.42.1），基于 FetchContent 的包声明与缓存 |
+## 使用约定
+
+- 只需 `include(cmake/UbpaInit.cmake)` + `Ubpa_InitProject()`，其余模块自动拉入
+- `Ubpa_AddTarget()` 是统一入口，所有 target 类型（EXE/LIB/DLL/TEST/QT）均走此宏
+- 依赖通过 `Ubpa_AddDep()` 声明，自动检测菱形冲突；导出通过 `Ubpa_Export()` 生成 Config 包
